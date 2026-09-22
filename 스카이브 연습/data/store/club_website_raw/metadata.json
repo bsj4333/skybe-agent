@@ -1,0 +1,37 @@
+{
+  "id": "club_website_raw",
+  "title": "동아리 홍보 웹사이트 제작",
+  "summary": "동아리 모집 공고를 통합하여 신입 부원 유입을 증가시키기 위한 웹사이트 제작.",
+  "kind": "activity",
+  "grade": 1,
+  "period": "2023.09 ~ 2023.11",
+  "skills": [
+    "React",
+    "Netlify"
+  ],
+  "raw_dir": "C:\\Users\\sure\\Desktop\\변성준\\에이전트 연습\\스카이브 연습\\samples\\club_website_raw",
+  "sources": [
+    "README.md"
+  ],
+  "evidence_total": 4,
+  "evidence_verified": 4,
+  "my_role_verified": true,
+  "open_questions": [
+    "어떤 기술 스택을 사용했는지 구체적으로 알고 싶습니다.",
+    "프로젝트 진행 중 어떤 어려움이 있었는지 알고 싶습니다."
+  ],
+  "importance": {
+    "score": 9,
+    "max": 15,
+    "tier": "활성",
+    "breakdown": {
+      "role_verified": 2,
+      "quantified_result": 2,
+      "evidence_ratio": 2,
+      "impact": 2,
+      "uniqueness": 1,
+      "goal_relevance": 0
+    },
+    "reason": "지원자 수의 정량적 개선이 있었으나, 웹사이트 제작은 일반적인 팀 활동으로 독창성이 부족하며, 제조·생산 현장과의 관련성이 없다."
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "id": "heat_treatment_raw",
+  "title": "열처리 공정 이상탐지 (개인 프로젝트)",
+  "summary": "열처리 공정의 이상 탐지를 위한 모델 개발",
+  "kind": "project",
+  "grade": 3,
+  "period": "2025.09 ~ 2025.11",
+  "skills": [
+    "numpy",
+    "sklearn",
+    "IsolationForest"
+  ],
+  "raw_dir": "C:\\Users\\sure\\Desktop\\변성준\\에이전트 연습\\스카이브 연습\\samples\\heat_treatment_raw",
+  "sources": [
+    "README.md",
+    "code/detect.py"
+  ],
+  "evidence_total": 7,
+  "evidence_verified": 7,
+  "my_role_verified": true,
+  "open_questions": [
+    "이 프로젝트에서 배운 점이나 소감은 무엇인가요?"
+  ],
+  "importance": {
+    "score": 13,
+    "max": 15,
+    "tier": "핵심",
+    "breakdown": {
+      "role_verified": 2,
+      "quantified_result": 2,
+      "evidence_ratio": 2,
+      "impact": 2,
+      "uniqueness": 2,
+      "goal_relevance": 3
+    },
+    "reason": "이상 탐지 모델 개발을 통해 공정 개선에 기여하였고, 정량적 개선이 확인되었으나, 일반적인 접근 방식이 포함되어 독창성은 다소 부족하다. 진로 목표와 직접적으로 관련이 있다."
+  }
+}

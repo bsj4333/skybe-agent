@@ -1,0 +1,3 @@
+model,setting,f1
+LSTM,전체 데이터,0.62
+LSTM,가동 상태별 분할,0.78

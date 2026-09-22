@@ -1,0 +1,44 @@
+{
+  "title": "동아리 홍보 웹사이트 제작",
+  "summary": "동아리 모집 공고를 통합하여 신입 부원 유입을 증가시키기 위한 웹사이트 제작.",
+  "period": "2023.09 ~ 2023.11",
+  "my_role": "프론트엔드 개발(React), 지원 폼 구현, Netlify 배포",
+  "my_role_verified": true,
+  "actions": [
+    {
+      "text": "동아리 홍보 웹사이트 제작",
+      "owner": "팀",
+      "verified": true,
+      "sources": [
+        "README.md @ L1-17"
+      ],
+      "tag": "[근거: README.md @ L1-17]"
+    }
+  ],
+  "decisions": [],
+  "results": [
+    {
+      "text": "모집 기간 지원자 40명 (전년 대비 2배)",
+      "owner": "팀",
+      "verified": true,
+      "sources": [
+        "README.md @ L1-17"
+      ],
+      "tag": "[근거: README.md @ L1-17]"
+    },
+    {
+      "text": "학교 커뮤니티에 링크 배포 후 첫 주에 지원 폼 제출 대부분 발생",
+      "owner": "팀",
+      "verified": true,
+      "sources": [
+        "README.md @ L1-17"
+      ],
+      "tag": "[근거: README.md @ L1-17]"
+    }
+  ],
+  "skills": [
+    "React",
+    "Netlify"
+  ],
+  "lessons": "확인 필요"
+}

@@ -1,0 +1,35 @@
+{
+  "id": "field_camp_raw",
+  "title": "FIELD CAMP 제조 공정 시뮬레이션 결과보고서",
+  "summary": "가상 제조 라인의 시간당 생산량 개선을 위한 시뮬레이션 결과 보고서",
+  "kind": "activity",
+  "grade": 3,
+  "period": "2025.07 (3주)",
+  "skills": [
+    "Arena"
+  ],
+  "raw_dir": "C:\\Users\\sure\\Desktop\\변성준\\에이전트 연습\\스카이브 연습\\samples\\field_camp_raw",
+  "sources": [
+    "결과보고서.md"
+  ],
+  "evidence_total": 7,
+  "evidence_verified": 7,
+  "my_role_verified": false,
+  "open_questions": [
+    "본인이 수행한 구체적인 역할은 무엇인가요?"
+  ],
+  "importance": {
+    "score": 12,
+    "max": 15,
+    "tier": "활성",
+    "breakdown": {
+      "role_verified": 0,
+      "quantified_result": 2,
+      "evidence_ratio": 2,
+      "impact": 3,
+      "uniqueness": 2,
+      "goal_relevance": 3
+    },
+    "reason": "시간당 생산량을 132% 개선한 것은 정량적 개선이 크고 의미가 분명하며, 제조 공정 시뮬레이션을 통해 독자적인 접근을 보여주고 있어 진로 목표와도 직접 관련이 있다."
+  }
+}

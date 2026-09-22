@@ -1,0 +1,19 @@
+{
+  "id": "study-20260922-085625",
+  "topic": "정규화",
+  "date": "2026-09-22",
+  "keywords": [
+    "L1 정규화",
+    "L2 정규화",
+    "과적합 방지",
+    "변수 선택",
+    "이상탐지"
+  ],
+  "learned_count": 5,
+  "confusion_count": 1,
+  "related_experience_ids": [
+    "3d_printer_raw"
+  ],
+  "dropped_unverified": 0,
+  "needs_review": true
+}

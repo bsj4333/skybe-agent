@@ -1,0 +1,42 @@
+{
+  "id": "3d_printer_raw",
+  "title": "3D 프린터 PHM 이상탐지 시스템",
+  "summary": "3D 프린터의 센서 데이터를 활용하여 출력 중 불량을 실시간으로 탐지하는 시스템을 개발하였다.",
+  "kind": "project",
+  "grade": 3,
+  "period": "2025.03 ~ 2025.06",
+  "skills": [
+    "numpy",
+    "pandas",
+    "torch",
+    "FastAPI"
+  ],
+  "raw_dir": "C:\\Users\\sure\\Desktop\\변성준\\에이전트 연습\\스카이브 연습\\samples\\3d_printer_raw",
+  "sources": [
+    "code/preprocess.py",
+    "code/train.py",
+    "발표자료.pptx",
+    "최종보고서.md",
+    "회의록.pdf"
+  ],
+  "evidence_total": 10,
+  "evidence_verified": 10,
+  "my_role_verified": true,
+  "open_questions": [
+    "본인이 한 일에 대한 구체적인 설명이 필요합니다. 어떤 부분에서 주도적으로 기여했는지 알려주세요."
+  ],
+  "importance": {
+    "score": 14,
+    "max": 15,
+    "tier": "핵심",
+    "breakdown": {
+      "role_verified": 2,
+      "quantified_result": 2,
+      "evidence_ratio": 2,
+      "impact": 3,
+      "uniqueness": 2,
+      "goal_relevance": 3
+    },
+    "reason": "이 시스템은 3D 프린터의 실시간 이상 탐지라는 독창적인 접근을 통해 불량 탐지 성능을 크게 향상시켰으며, 진로 목표와 직접적으로 관련이 있다."
+  }
+}

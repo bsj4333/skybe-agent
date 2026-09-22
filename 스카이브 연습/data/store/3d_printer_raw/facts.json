@@ -1,0 +1,85 @@
+{
+  "title": "3D 프린터 PHM 이상탐지 시스템",
+  "summary": "3D 프린터의 센서 데이터를 활용하여 출력 중 불량을 실시간으로 탐지하는 시스템을 개발하였다.",
+  "period": "2025.03 ~ 2025.06",
+  "my_role": "센서 데이터 수집 및 전처리, Autoencoder 기반 이상탐지 모델 구현, 실시간 추론 서버",
+  "my_role_verified": true,
+  "actions": [
+    {
+      "text": "센서 데이터를 50Hz로 수집하고, 윈도우(2초) 단위 통계 특징(평균, 표준편차, 최대값)을 추출하였다.",
+      "owner": "팀",
+      "verified": true,
+      "sources": [
+        "최종보고서.md @ L1-31",
+        "최종보고서.md @ L1-31"
+      ],
+      "tag": "[근거: 최종보고서.md @ L1-31] [근거: 최종보고서.md @ L1-31]"
+    },
+    {
+      "text": "정상 출력 데이터만으로 Autoencoder를 학습하고 재구성 오차를 이상 점수로 사용하였다.",
+      "owner": "팀",
+      "verified": true,
+      "sources": [
+        "최종보고서.md @ L1-31"
+      ],
+      "tag": "[근거: 최종보고서.md @ L1-31]"
+    },
+    {
+      "text": "FastAPI 기반 실시간 추론 서버에 모델을 탑재하였다.",
+      "owner": "팀",
+      "verified": true,
+      "sources": [
+        "최종보고서.md @ L1-31"
+      ],
+      "tag": "[근거: 최종보고서.md @ L1-31]"
+    }
+  ],
+  "decisions": [
+    {
+      "text": "임계값을 검증 데이터 95퍼센타일로 설정했으나 오탐이 잦아 99퍼센타일로 올리기로 결정하였다.",
+      "owner": "팀",
+      "verified": true,
+      "sources": [
+        "회의록.pdf @ p.1",
+        "회의록.pdf @ p.1"
+      ],
+      "tag": "[근거: 회의록.pdf @ p.1] [근거: 회의록.pdf @ p.1]"
+    }
+  ],
+  "results": [
+    {
+      "text": "불량 탐지 F1-score가 기준 모델(단순 임계값) 0.71에서 제안 모델 0.86으로 향상되었다.",
+      "owner": "팀",
+      "verified": true,
+      "sources": [
+        "발표자료.pptx @ slide 3"
+      ],
+      "tag": "[근거: 발표자료.pptx @ slide 3]"
+    },
+    {
+      "text": "추론 지연 평균이 42ms로 측정되었다.",
+      "owner": "팀",
+      "verified": true,
+      "sources": [
+        "발표자료.pptx @ slide 3"
+      ],
+      "tag": "[근거: 발표자료.pptx @ slide 3]"
+    },
+    {
+      "text": "불량 발견 시점이 출력 종료 후에서 출력 중 평균 3분 이내로 개선되었다.",
+      "owner": "팀",
+      "verified": true,
+      "sources": [
+        "발표자료.pptx @ slide 3"
+      ],
+      "tag": "[근거: 발표자료.pptx @ slide 3]"
+    }
+  ],
+  "skills": [
+    "numpy",
+    "pandas",
+    "torch",
+    "FastAPI"
+  ],
+  "lessons": "확인 필요"
+}

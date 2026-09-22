@@ -1,0 +1,39 @@
+{
+  "id": "construction_phm_raw",
+  "title": "건설장비 유압 시스템 PHM 데이터 분석",
+  "summary": "굴착기 유압 시스템의 압력·온도 센서 로그로 고장 징후를 사전에 찾는 프로젝트.",
+  "kind": "project",
+  "grade": 2,
+  "period": "2024.03 ~ 2024.06",
+  "skills": [
+    "EDA",
+    "LSTM",
+    "Python"
+  ],
+  "raw_dir": "C:\\Users\\sure\\Desktop\\변성준\\에이전트 연습\\스카이브 연습\\samples\\construction_phm_raw",
+  "sources": [
+    "README.md",
+    "analysis_notes.md",
+    "results.csv"
+  ],
+  "evidence_total": 9,
+  "evidence_verified": 9,
+  "my_role_verified": true,
+  "open_questions": [
+    "프로젝트에서 배운 점이나 소감은 무엇인가요?"
+  ],
+  "importance": {
+    "score": 13,
+    "max": 15,
+    "tier": "핵심",
+    "breakdown": {
+      "role_verified": 2,
+      "quantified_result": 2,
+      "evidence_ratio": 2,
+      "impact": 2,
+      "uniqueness": 2,
+      "goal_relevance": 3
+    },
+    "reason": "프로젝트는 데이터 분석을 통해 고장 징후를 사전에 발견하는 것으로, 정량적 개선(F1-score 향상)과 독창적인 접근(상태 구분 규칙 정의)이 포함되어 있어 진로 목표와 직접 관련이 있다."
+  }
+}

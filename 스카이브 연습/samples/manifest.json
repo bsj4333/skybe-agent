@@ -1,0 +1,8 @@
+[
+  {"folder": "samples/club_website_raw", "grade": 1},
+  {"folder": "samples/construction_phm_raw", "grade": 2},
+  {"folder": "samples/ml_course_raw", "grade": 2},
+  {"folder": "samples/3d_printer_raw", "grade": 3},
+  {"folder": "samples/field_camp_raw", "grade": 3},
+  {"folder": "samples/heat_treatment_raw", "grade": 3}
+]

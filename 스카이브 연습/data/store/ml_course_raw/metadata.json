@@ -1,0 +1,38 @@
+{
+  "id": "ml_course_raw",
+  "title": "와인 품질 데이터 분류 모델",
+  "summary": "와인 품질 데이터로 분류 모델을 만들고 5-겹 교차검증으로 평가했다.",
+  "kind": "project",
+  "grade": 2,
+  "period": "2024년 2학기",
+  "skills": [
+    "로지스틱 회귀",
+    "랜덤 포레스트",
+    "5-겹 교차검증"
+  ],
+  "raw_dir": "C:\\Users\\sure\\Desktop\\변성준\\에이전트 연습\\스카이브 연습\\samples\\ml_course_raw",
+  "sources": [
+    "과제2_결과.md",
+    "노트_과적합.md"
+  ],
+  "evidence_total": 4,
+  "evidence_verified": 4,
+  "my_role_verified": true,
+  "open_questions": [
+    "확인 필요"
+  ],
+  "importance": {
+    "score": 10,
+    "max": 15,
+    "tier": "활성",
+    "breakdown": {
+      "role_verified": 2,
+      "quantified_result": 2,
+      "evidence_ratio": 2,
+      "impact": 2,
+      "uniqueness": 1,
+      "goal_relevance": 1
+    },
+    "reason": "모델의 정확도와 과적합 여부를 평가한 점에서 정량적 개선이 있지만, 제조·생산 현장과의 직접적인 연관성은 낮고, 일반적인 데이터 분석 활동에 해당한다."
+  }
+}
