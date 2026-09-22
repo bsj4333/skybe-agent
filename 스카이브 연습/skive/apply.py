@@ -45,8 +45,10 @@ def _questions_for_user(plan: Plan, answers: list[dict]) -> list[str]:
     return questions
 
 
-def run_apply(job_text: str) -> dict:
+def run_apply(job_text: str, override_questions: list[str] | None = None) -> dict:
     job = parse_job(job_text)
+    if override_questions:
+        job = job.model_copy(update={"essay_questions": override_questions})
     questions = job.essay_questions or [DEFAULT_QUESTION]
     plan, trace = run_planner(job)
     plan = _sanitize(plan, questions)

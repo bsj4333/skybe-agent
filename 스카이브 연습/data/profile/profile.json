@@ -1,5 +1,5 @@
 {
-  "headline": "제조·생산 현장의 데이터 분석을 통한 설비 이상 탐지 및 공정 개선에 관심이 있는 데이터 엔지니어",
+  "headline": "제조·생산 현장의 데이터 분석 및 공정 개선에 관심이 있는 데이터 엔지니어",
   "competencies": [
     {
       "name": "데이터 분석 및 모델링",
@@ -12,7 +12,7 @@
     },
     {
       "name": "프로그래밍 및 소프트웨어 개발",
-      "description": "프론트엔드 개발 및 데이터 처리, 모델 구현을 위한 프로그래밍 능력",
+      "description": "프론트엔드 개발 및 데이터 처리 관련 소프트웨어를 구현하는 능력",
       "experience_ids": [
         "club_website_raw",
         "3d_printer_raw"
@@ -23,31 +23,32 @@
       "description": "문제를 분석하고 개선안을 제시하여 성과를 향상시키는 능력",
       "experience_ids": [
         "3d_printer_raw",
-        "field_camp_raw"
+        "field_camp_raw",
+        "heat_treatment_raw"
       ]
     }
   ],
   "traits": [
     {
-      "trait": "분석적 사고",
-      "rationale": "데이터를 분석하고 문제를 해결하기 위한 규칙을 정의하는 과정에서 반복적으로 나타남",
-      "experience_ids": [
-        "construction_phm_raw",
-        "heat_treatment_raw"
-      ]
-    },
-    {
-      "trait": "협업 능력",
-      "rationale": "팀 프로젝트에서 다양한 역할을 수행하며 협력하는 모습이 반복적으로 나타남",
+      "trait": "협업",
+      "rationale": "팀 프로젝트에서 다양한 역할을 수행하며 협력하는 모습을 보였다.",
       "experience_ids": [
         "3d_printer_raw",
         "construction_phm_raw",
         "field_camp_raw"
       ]
+    },
+    {
+      "trait": "분석적 사고",
+      "rationale": "데이터를 분석하고 문제를 정의하여 해결책을 제시하는 과정에서 반복적으로 나타났다.",
+      "experience_ids": [
+        "construction_phm_raw",
+        "heat_treatment_raw"
+      ]
     }
   ],
   "gaps": [
-    "제조·생산 현장에서의 실무 경험이 부족함",
-    "데이터 엔지니어링 관련 기술 스택에 대한 경험이 부족함"
+    "제조·생산 현장에서의 실무 경험이 부족하다.",
+    "데이터 엔지니어링 관련 기술 스택이 제한적이다."
   ]
 }

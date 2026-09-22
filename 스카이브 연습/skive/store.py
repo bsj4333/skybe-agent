@@ -57,6 +57,32 @@ def get_source_text(exp_id: str, source: str, limit: int = 6000) -> str | None:
     return text[:limit]
 
 
+def _notes_dir(exp_id: str) -> Path:
+    return STORE / exp_id / "notes"
+
+
+def save_note(exp_id: str, filename: str, content: str) -> Path:
+    """원본 증거 파일은 절대 안 건드리고, 경험 폴더 안에 별도 메모 파일만 쓰거나 덮어쓴다."""
+    name = Path(filename).name  # 경로 조작 방지, 파일명만 사용
+    if not name:
+        raise ValueError("파일 이름이 비어있음")
+    folder = _notes_dir(exp_id)
+    folder.mkdir(parents=True, exist_ok=True)
+    path = folder / name
+    path.write_text(content, encoding="utf-8")
+    return path
+
+
+def list_notes(exp_id: str) -> list[str]:
+    folder = _notes_dir(exp_id)
+    return sorted(p.name for p in folder.glob("*") if p.is_file()) if folder.is_dir() else []
+
+
+def get_note(exp_id: str, filename: str) -> str | None:
+    path = _notes_dir(exp_id) / Path(filename).name
+    return path.read_text(encoding="utf-8") if path.is_file() else None
+
+
 def save_profile(markdown: str, profile: dict) -> Path:
     PROFILE_DIR.mkdir(parents=True, exist_ok=True)
     (PROFILE_DIR / "profile.md").write_text(markdown, encoding="utf-8")

@@ -14,16 +14,19 @@ OUTPUT_DIR = Path(__file__).resolve().parent.parent / "data" / "outputs"
 
 
 def _ingest(folder: str, grade: int, exp_id: str | None = None) -> None:
+    from skive.chunks_store import sync_chunks
+
     user = load_user()
     root = Path(folder)
     exp_id = exp_id or root.name
     markdown, meta, facts = analyze_folder(root, user["name"], exp_id, grade)
     meta["importance"] = score_importance(meta, facts, user["career_goal"])
     store.save(exp_id, markdown, meta, facts)
+    n_chunks = sync_chunks(exp_id, root)
     imp = meta["importance"]
     print(
         f"[{exp_id}] {meta['grade']}학년 {meta['kind']} | 근거 {meta['evidence_verified']}/{meta['evidence_total']} | "
-        f"역할검증={meta['my_role_verified']} | 중요도 {imp['score']}/{imp['max']} ({imp['tier']})"
+        f"역할검증={meta['my_role_verified']} | 중요도 {imp['score']}/{imp['max']} ({imp['tier']}) | 청크 {n_chunks}개 임베딩"
     )
     for question in meta["open_questions"]:
         print(f"    [질문] {question}")
@@ -97,6 +100,28 @@ def cmd_ask(args: argparse.Namespace) -> None:
     print(answer)
 
 
+def cmd_migrate(_: argparse.Namespace) -> None:
+    from skive.db import run_migrations
+
+    applied = run_migrations()
+    print("적용된 마이그레이션:", ", ".join(applied) if applied else "없음 (이미 최신 상태)")
+
+
+def cmd_sync_chunks(args: argparse.Namespace) -> None:
+    """이미 ingest된 경험의 원본 파일을 다시 읽어 청크+임베딩을 DB에 (재)생성한다.
+    스키마를 처음 만든 뒤 기존 경험들을 채워 넣거나, 원본 파일이 바뀌었을 때 쓴다."""
+    from skive.chunks_store import sync_chunks
+
+    ids = [args.id] if args.id else [m["id"] for m in store.list_meta()]
+    for exp_id in ids:
+        meta = store.get_meta(exp_id)
+        if meta is None:
+            print(f"[{exp_id}] 존재하지 않는 id, 건너뜀")
+            continue
+        n = sync_chunks(exp_id, Path(meta["raw_dir"]))
+        print(f"[{exp_id}] 청크 {n}개 임베딩 완료")
+
+
 def cmd_report(args: argparse.Namespace) -> None:
     from skive.report_html import build_report
 
@@ -135,6 +160,12 @@ def main() -> None:
     p = sub.add_parser("ask", help="기억(프로필·경험·공부 기록)에 한 번 질문")
     p.add_argument("question")
     p.set_defaults(func=cmd_ask)
+
+    sub.add_parser("migrate", help="migrations/*.sql을 DB에 순서대로 적용").set_defaults(func=cmd_migrate)
+
+    p = sub.add_parser("sync-chunks", help="경험의 원본 파일을 다시 읽어 청크+임베딩을 DB에 (재)생성")
+    p.add_argument("--id", help="이 경험만. 생략하면 저장된 경험 전체")
+    p.set_defaults(func=cmd_sync_chunks)
 
     p = sub.add_parser("report", help="apply 결과로 시연용 HTML 리포트 생성")
     p.add_argument("apply_json")

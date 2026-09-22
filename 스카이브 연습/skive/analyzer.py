@@ -2,6 +2,8 @@ from pathlib import Path
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
+from skive import facts as facts_v2
+from skive import verify
 from skive.llm import get_llm
 from skive.loaders import Chunk, load_folder
 from skive.models import UNKNOWN, Evidence, Experience, Fact
@@ -25,35 +27,61 @@ SYSTEM_PROMPT = f"""너는 대학생의 프로젝트·수업·활동 자료를 �
 8. lessons는 원문에 '배운 점'·'소감'으로 명시된 내용만 쓴다. 없으면 '{UNKNOWN}'."""
 
 
-def _is_verified(ev: Evidence, chunks: dict[str, Chunk]) -> bool:
-    chunk = chunks.get(ev.chunk_id)
-    return chunk is not None and quote_in_source(ev.quote, norm(chunk.text))
-
-
 def _where(ev: Evidence, chunks: dict[str, Chunk]) -> str:
     chunk = chunks.get(ev.chunk_id)
     return f"{chunk.source} @ {chunk.location}" if chunk else f"존재하지 않는 조각 {ev.chunk_id}"
 
 
+def _inspect(ev: Evidence, chunks: dict[str, Chunk], claim: str) -> dict:
+    """근거 하나를 네 가지로 나눠 검사한다 (F03).
+
+    예전에는 "인용문이 원문에 있는가" 하나만 봤다. 그래서 원문에 실제로 있는
+    `팀은 보고서를 작성했다.`를 인용하면서 `내가 Kubernetes 클러스터를 구축했다.`를
+    주장해도 검증 통과였다. quote 자체도 저장하지 않아 사후 감사조차 불가능했다.
+    """
+    chunk = chunks.get(ev.chunk_id)
+    matched = chunk is not None and quote_in_source(ev.quote, norm(chunk.text))
+    missing = verify.numbers_missing_from(claim, ev.quote) if matched else []
+    rec = {
+        "chunk_id": ev.chunk_id,
+        "source": chunk.source if chunk else None,
+        "location": chunk.location if chunk else None,
+        "quote": ev.quote,  # ← 반드시 저장. 없으면 나중에 아무도 재검증할 수 없다
+        "quote_matched": matched,
+        "supports_claim": matched and verify.supports_claim(claim, ev.quote),
+        "owner_match": not (matched and verify.owner_conflict(claim, ev.quote)),
+        "numbers_missing": missing,
+    }
+    rec["ok"] = bool(
+        matched and rec["supports_claim"] and rec["owner_match"] and not missing
+    )
+    return rec
+
+
+def _reason(rec: dict) -> str:
+    if not rec["quote_matched"]:
+        return "미확인 근거"
+    if not rec["owner_match"]:
+        return "근거 불충분(인용문의 주체가 본인이 아님)"
+    if not rec["supports_claim"]:
+        return "근거 불충분(인용문이 주장과 무관)"
+    if rec["numbers_missing"]:
+        return f"근거 불충분(인용문에 없는 수치 {', '.join(rec['numbers_missing'])})"
+    return "근거"
+
+
 def _process(facts: list[Fact], chunks: dict[str, Chunk], stats: dict, owner: str | None) -> list[dict]:
     out = []
     for f in facts:
-        verified_where, tags = [], []
+        records, tags = [], []
         for ev in f.evidence:
-            ok = _is_verified(ev, chunks)
+            rec = _inspect(ev, chunks, f.text)
+            records.append(rec)
             stats["total"] += 1
-            stats["verified"] += int(ok)
-            tags.append(f"[{'근거' if ok else '미확인 근거'}: {_where(ev, chunks)}]")
-            if ok:
-                verified_where.append(_where(ev, chunks))
+            stats["verified"] += int(rec["ok"])
+            tags.append(f"[{_reason(rec)}: {_where(ev, chunks)}]")
         out.append(
-            {
-                "text": f.text,
-                "owner": owner or f.owner,
-                "verified": bool(verified_where),
-                "sources": verified_where,
-                "tag": " ".join(tags),
-            }
+            facts_v2.document_fact(f.text, owner or f.owner, records, tag=" ".join(tags))
         )
     return out
 
@@ -77,17 +105,19 @@ def analyze_folder(root: Path, me: str, exp_id: str, grade: int) -> tuple[str, d
     )
 
     stats = {"total": 0, "verified": 0}
-    role, role_tags, role_verified = exp.my_role, "", False
+    role, role_tags, role_verified, role_evidence = exp.my_role, "", False, []
     if role != UNKNOWN:
-        if any(_is_verified(ev, chunks) for ev in exp.my_role_evidence):
+        # 역할은 가장 오용되기 쉬운 필드라 사실과 똑같은 4가지 검사를 그대로 적용한다.
+        role_evidence = [_inspect(ev, chunks, exp.my_role) for ev in exp.my_role_evidence]
+        stats["total"] += len(role_evidence)
+        stats["verified"] += sum(r["ok"] for r in role_evidence)
+        passed = [r for r in role_evidence if r["ok"]]
+        if passed:
             role_verified = True
-            role_tags = " ".join(
-                f"[근거: {_where(ev, chunks)}]" for ev in exp.my_role_evidence if _is_verified(ev, chunks)
-            )
-            stats["total"] += len(exp.my_role_evidence)
-            stats["verified"] += sum(_is_verified(ev, chunks) for ev in exp.my_role_evidence)
+            role_tags = " ".join(f"[근거: {r['source']} @ {r['location']}]" for r in passed)
         else:
-            role = f"{UNKNOWN} (모델이 '{exp.my_role}'라고 했으나 원문 근거를 검증하지 못함)"
+            why = _reason(role_evidence[0]) if role_evidence else "근거 없음"
+            role = f"{UNKNOWN} (모델이 '{exp.my_role}'라고 했으나 {why})"
 
     force_team = None if role_verified else "팀"
     actions = _process(exp.actions, chunks, stats, force_team)
@@ -153,6 +183,13 @@ def analyze_folder(root: Path, me: str, exp_id: str, grade: int) -> tuple[str, d
         "period": exp.period,
         "my_role": role,
         "my_role_verified": role_verified,
+        "my_role_provenance": facts_v2.DOCUMENT,
+        "my_role_evidence_status": (
+            facts_v2.QUOTE_MATCHED if role_verified
+            else facts_v2.NEEDS_REVIEW if role_evidence
+            else facts_v2.UNLINKED
+        ),
+        "my_role_evidence": role_evidence,
         "actions": actions,
         "decisions": decisions,
         "results": results,

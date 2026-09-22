@@ -1,5 +1,6 @@
 from langchain_core.messages import HumanMessage, SystemMessage
 
+from skive import facts as facts_v2
 from skive.llm import get_llm
 from skive.models import ImportanceLLM
 
@@ -21,7 +22,7 @@ def score_importance(meta: dict, facts: dict, goal: str) -> dict:
         f"- ({f['owner']}) {f['text']}"
         for key in ("actions", "decisions", "results")
         for f in facts[key]
-        if f["verified"]
+        if facts_v2.is_document_backed(f)
     ]
     text = (
         f"제목: {facts['title']}\n요약: {facts['summary']}\n기간: {facts['period']}\n"
@@ -31,7 +32,11 @@ def score_importance(meta: dict, facts: dict, goal: str) -> dict:
     r: ImportanceLLM = llm.invoke([SystemMessage(RUBRIC), HumanMessage(f"진로 목표: {goal}\n\n{text}")])
 
     role_pts = 2 if facts["my_role_verified"] else 0
-    quantified = any(any(ch.isdigit() for ch in f["text"]) for f in facts["results"] if f["verified"])
+    quantified = any(
+        any(ch.isdigit() for ch in f["text"])
+        for f in facts["results"]
+        if facts_v2.is_document_backed(f)
+    )
     quant_pts = 2 if quantified else 0
     total_ev = meta["evidence_total"]
     evidence_pts = round(2 * meta["evidence_verified"] / total_ev) if total_ev else 0

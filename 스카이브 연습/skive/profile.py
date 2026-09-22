@@ -1,5 +1,6 @@
 from langchain_core.messages import HumanMessage, SystemMessage
 
+from skive import facts as facts_v2
 from skive import store
 from skive.llm import get_llm
 from skive.models import Profile
@@ -24,7 +25,9 @@ def _experience_block(meta: dict, facts: dict) -> str:
         f"본인 역할: {facts['my_role']}",
     ]
     for key in ("actions", "decisions", "results"):
-        lines += [f"- ({f['owner']}) {f['text']}" for f in facts[key] if f["verified"]]
+        lines += [
+            f"- ({f['owner']}) {f['text']}" for f in facts[key] if facts_v2.is_document_backed(f)
+        ]
     if facts["skills"]:
         lines.append(f"기술: {', '.join(facts['skills'])}")
     if not facts["lessons"].startswith("확인 필요"):

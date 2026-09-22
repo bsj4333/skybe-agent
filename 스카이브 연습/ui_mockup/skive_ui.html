@@ -273,7 +273,9 @@ details.dbg summary{cursor:pointer}
 
     <!-- PROFILE -->
     <section id="tab-profile" hidden>
-      <div class="topline"><div><h1>프로필</h1><div class="desc">모델이 지금까지의 경험으로 파악한 나. 모든 항목에 근거 경험이 붙어 있어요.</div></div></div>
+      <div class="topline"><div><h1>프로필</h1><div class="desc">모델이 지금까지의 경험으로 파악한 나. 모든 항목에 근거 경험이 붙어 있어요.</div></div>
+        <div class="actions"><button class="btn sm" onclick="rebuildProfile()">↻ 프로필 새로고침</button></div>
+      </div>
 
       <div class="section">
         <h2>기본 정보</h2>
@@ -286,44 +288,34 @@ details.dbg summary{cursor:pointer}
         </div>
       </div>
 
-      <div class="tiles">
-        <div class="tile"><div class="num">6</div><div class="lbl">저장된 경험 (1~3학년)</div></div>
-        <div class="tile"><div class="num">41/41</div><div class="lbl">근거 인용 검증 통과</div></div>
-        <div class="tile"><div class="num">3</div><div class="lbl">핵심 등급 경험</div></div>
-        <div class="tile"><div class="num">1</div><div class="lbl">역할 미확인 경험<span class="flag">⚠ 확인 필요</span></div></div>
+      <div class="section">
+        <h2>자소서 작성 스타일 <span class="sub" style="font-weight:400"> — 자소서 챗봇에게 주는 지침. 비워두면 기본값(STAR 구조, 10년차 컨설턴트 톤) 사용</span></h2>
+        <div class="card" style="padding:16px 20px">
+          <textarea id="essayStyle" style="width:100%;min-height:120px;border:1px solid var(--line);border-radius:9px;padding:10px;font-family:inherit;font-size:13px;background:var(--bg);color:var(--ink)" placeholder="예: 너는 10년차 자소서 컨설턴트다. STAR 구조로 쓰고, 지원동기는 계기→준비과정→지원이유 순서로 써라."></textarea>
+          <div style="margin-top:10px"><button class="btn sm primary" onclick="saveEssayStyle()">저장</button></div>
+        </div>
       </div>
+
+      <div class="tiles" id="profTiles"></div>
 
       <div class="section">
         <h2>역량</h2>
-        <div class="profgrid">
-          <div class="card profcard"><h3>데이터 분석 및 모델링</h3><p>다양한 데이터로 모델을 개발하고 성능을 평가한 경험이 반복 확인됨.</p><div><span class="chip">phm</span><span class="chip">ml</span><span class="chip">heat</span></div></div>
-          <div class="card profcard"><h3>프로그래밍 및 소프트웨어 개발</h3><p>프론트엔드부터 실시간 추론 서버까지 구현.</p><div><span class="chip">club</span><span class="chip">3dp</span></div></div>
-          <div class="card profcard"><h3>문제 해결 및 개선안 제시</h3><p>문제를 정의하고 개선안을 제시해 성과로 연결.</p><div><span class="chip">3dp</span><span class="chip">field_camp</span></div></div>
-        </div>
+        <div class="profgrid" id="profCompetencies"></div>
       </div>
 
       <div class="section">
         <h2>반복 관찰되는 성향 <span class="sub" style="font-weight:400"> — 서로 다른 경험 2건 이상에서만 인정</span></h2>
-        <div class="profgrid">
-          <div class="card profcard"><h3>분석적 사고</h3><p>문제를 상태별로 쪼개 규칙을 정의하는 접근이 반복됨.</p><div><span class="chip">phm</span><span class="chip">heat</span></div></div>
-          <div class="card profcard"><h3>협업 능력</h3><p>여러 팀 프로젝트에서 역할을 맡아 협력.</p><div><span class="chip">3dp</span><span class="chip">phm</span><span class="chip">field_camp</span></div></div>
-        </div>
+        <div class="profgrid" id="profTraits"></div>
       </div>
 
       <div class="section">
         <h2>보강이 필요한 부분</h2>
-        <div class="card" style="padding:14px 18px"><ul style="margin:0;padding-left:18px;font-size:13px;color:var(--ink-2)"><li>제조·생산 현장에서의 실무 경험이 부족함</li><li>데이터 엔지니어링 관련 기술 스택 경험이 부족함</li></ul></div>
+        <div class="card" style="padding:14px 18px" id="profGaps"></div>
       </div>
 
       <div class="section">
         <h2>최근 활동</h2>
-        <div class="card" style="padding:14px 18px">
-          <table class="match">
-            <tr><td class="mono" style="width:110px;color:var(--sub)">09.22 11:24</td><td>챗봇에서 "3D 프린터 담당 역할" 정정 요청 접수 → <b>반영 대기중</b></td><td><span class="pill warn">확인 1건</span></td></tr>
-            <tr><td class="mono" style="color:var(--sub)">09.22 08:56</td><td>공부 세션 종료 → <b>정규화</b> 기록 자동 저장</td><td><span class="pill ok">완료</span></td></tr>
-            <tr><td class="mono" style="color:var(--sub)">09.21 21:40</td><td>현대차 생산기술 공고 매칭 · 문항 3개 초안 생성</td><td><span class="pill warn">확인 1건</span></td></tr>
-          </table>
-        </div>
+        <div class="card" style="padding:14px 18px"><span class="sub">아직 연동되지 않았습니다.</span></div>
       </div>
     </section>
 
@@ -352,37 +344,24 @@ details.dbg summary{cursor:pointer}
           <div class="scopebar" id="scopebar">
             <span class="lbl">범위</span>
           </div>
-          <div class="scopenote" id="scopenote">전체 기록(경험 6건 + 공부 기록)에서 찾아 답합니다.</div>
-          <div class="chatlog" id="chatlog">
-            <div class="msgrow bot"><div class="msg bot">안녕하세요, 민수님. 위에서 폴더를 고르면 그 프로젝트만 놓고 얘기할 수 있어요. 아래 예시 질문을 눌러보세요.</div></div>
-          </div>
+          <div class="scopenote" id="scopenote"></div>
+          <div class="chatlog" id="chatlog"></div>
           <div class="composer"><input id="chatinput" type="text" placeholder="예: 3D 프린터에서 FastAPI는 사실 내가 안 만들었어"><button id="chatsend">보내기</button></div>
         </div>
         <div class="card suggest">
           <h3>예시 질문</h3>
-          <button data-q="q1">L1이랑 L2 정규화 차이 다시 설명해줘.</button>
-          <button data-q="q2">내가 3D 프린터 프로젝트에서 뭘 담당했는지 알려줘.</button>
-          <button data-q="q3">사실 FastAPI 서버는 내가 안 만들었어, 팀원이 만든 거야.</button>
-          <div class="note">세번째 질문을 눌러보세요 — 정정 요청이 들어오면 바로 반영하지 않고 확인 카드를 먼저 띄웁니다.</div>
+          <button>내가 3D 프린터 프로젝트에서 뭘 담당했는지 알려줘.</button>
+          <button>내 경험 중 F1-score가 개선된 사례가 있어?</button>
+          <button>사실 FastAPI 서버는 내가 안 만들었어, 팀원이 만든 거야.</button>
+          <div class="note">세번째 질문을 눌러보세요 — 정정 요청이면 바로 반영하지 않고 확인 카드를 먼저 띄웁니다.</div>
         </div>
       </div>
     </section>
 
     <!-- STUDY / REVIEW -->
     <section id="tab-study" hidden>
-      <div class="topline"><div><h1>복습</h1><div class="desc">챗봇 대화가 끝날 때 자동으로 요약되어 저장됩니다. 헷갈렸던 항목은 복습 카드로 다시 물어봅니다.</div></div></div>
-      <div class="studylist">
-        <div class="card study">
-          <div class="head"><h3>정규화 (L1 / L2)</h3><span class="date">2026-09-22</span></div>
-          <div class="pills"><span class="pill warn">복습 필요 1건</span><span class="chip">3dp_raw</span><span class="chip">ml_raw</span></div>
-          <ul>
-            <li>L1은 가중치를 0으로 만들어 변수 선택 효과, L2는 가중치를 작게 만듦</li>
-            <li>정규화는 센서 데이터 스케일을 맞추고 과적합을 방지</li>
-          </ul>
-          <ul class="conf"><li>⚠ 아직 헷갈림 — L1이 변수 선택 효과를 갖는 이유를 다시 정리 요청함</li></ul>
-          <div class="quick"><button class="btn sm primary" onclick="openFlash()">복습 카드로 풀어보기</button></div>
-        </div>
-      </div>
+      <div class="topline"><div><h1>복습</h1><div class="desc">챗봇 대화가 끝날 때 자동으로 요약되어 저장됩니다.</div></div></div>
+      <div class="studylist"></div>
     </section>
   </main>
 </div>
@@ -396,39 +375,21 @@ details.dbg summary{cursor:pointer}
     </div>
     <div class="mbody">
       <div id="wstep1">
-        <p style="font-size:13px;color:var(--ink-2);margin-top:0">로컬 폴더 경로를 지정하세요. 파일을 어디로 옮기거나 업로드하지 않고, 이 컴퓨터에 있는 그대로 읽습니다.</p>
-        <div class="pathbox">C:\Users\민수\Documents\학교자료\4-2_캡스톤설계</div>
-        <button class="btn sm" onclick="toast('네이티브 폴더 선택 창 (시안)')">📁 다른 폴더 선택…</button>
-        <div class="recent">
-          <div style="color:var(--sub);font-size:11px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px">최근에 연 폴더</div>
-          <div onclick="toast('열처리_공정_이상탐지 다시 분석 (시안)')">열처리_공정_이상탐지/</div>
-          <div onclick="toast('3D프린터_PHM 다시 분석 (시안)')">3D프린터_PHM/</div>
+        <p style="font-size:13px;color:var(--ink-2);margin-top:0">이 컴퓨터에 있는 폴더의 절대 경로를 붙여넣으세요. 파일을 옮기거나 업로드하지 않고, 있는 그대로 읽습니다. (네이티브 폴더 선택 창은 아직 없어서 경로를 직접 입력해야 해요)</p>
+        <div class="formrow" style="grid-template-columns:70px 1fr"><label>폴더 경로</label><input id="wfolder" placeholder="예: C:\Users\me\Documents\3D프린터_PHM"></div>
+        <div class="formrow" style="grid-template-columns:70px 1fr"><label>학년</label>
+          <select id="wgrade"><option value="1">1학년</option><option value="2">2학년</option><option value="3" selected>3학년</option><option value="4">4학년</option></select>
         </div>
       </div>
       <div id="wstep2" hidden>
-        <p style="font-size:13px;color:var(--ink-2);margin-top:0">폴더 안 파일을 읽고, 근거 인용을 검증하고 있어요.</p>
-        <div class="proglist" id="proglist">
-          <div class="progitem"><span class="ico">1</span>파일 스캔 (문서 9개, 코드 5개)</div>
-          <div class="progitem"><span class="ico">2</span>청크 분리 (38개 조각)</div>
-          <div class="progitem"><span class="ico">3</span>LLM으로 사실·역할 추출 중</div>
-          <div class="progitem"><span class="ico">4</span>근거 원문 대조 검증</div>
-          <div class="progitem"><span class="ico">5</span>중요도 채점 · 프로필 반영 대기</div>
-        </div>
+        <p style="font-size:13px;color:var(--ink-2);margin-top:0">폴더 안 파일을 읽고, 사실을 추출하고, 근거 인용을 원문과 대조해서 검증하고 있어요. 파일 개수·크기에 따라 시간이 좀 걸릴 수 있어요.</p>
+        <div class="proglist"><div class="progitem active"><span class="ico">…</span>분석 중…</div></div>
       </div>
       <div id="wstep3" hidden>
-        <h3 style="font-size:15px;margin-bottom:4px">4-2 캡스톤설계 · 스마트팩토리 품질예측</h3>
-        <div class="sub" style="margin-bottom:12px">4학년 · project · 근거 8/9 확인됨</div>
-        <div class="factlist">
-          <div class="fact"><div class="txt"><b>센서 데이터 12종을 수집해 품질 예측 모델(XGBoost)을 개발함.</b><br><span class="chip">보고서.pdf p.3</span></div></div>
-          <div class="fact"><div class="txt"><b>예측 정확도를 82%에서 91%로 개선함.</b><br><span class="chip">보고서.pdf p.7</span></div></div>
-          <div class="fact unver"><div class="txt"><b style="color:var(--warn)">⚠ 확인 필요 — 이 모델을 실제로 담당한 사람이 본인인지 팀원인지 문서에 명시되어 있지 않습니다.</b>
-            <div class="quick"><button class="btn sm" onclick="toast('저장됨: 본인 역할')">제가 직접 했어요</button><button class="btn sm" onclick="toast('저장됨: 팀원 역할')">팀원이 했어요</button><button class="btn sm" onclick="toast('직접 입력 폼 (시안)')">직접 설명할게요</button></div>
-          </div></div>
-        </div>
-        <div class="reflect">
-          <span class="lbl">내 생각 남기기 — AI가 뽑은 사실과 구분해서 저장되고, 근거 검증 없이도 자소서에 "느낀 점"으로만 쓰일 수 있어요</span>
-          <textarea placeholder="예: 처음엔 XGBoost 튜닝이 안 돼서 팀원이랑 밤새웠는데, feature importance를 다시 뽑아보고 나서야 문제를 찾았다..."></textarea>
-        </div>
+        <h3 style="font-size:15px;margin-bottom:4px" id="w3title"></h3>
+        <div class="sub" style="margin-bottom:12px" id="w3sub"></div>
+        <div class="factlist" id="w3facts"></div>
+        <div id="w3questions"></div>
       </div>
     </div>
     <div class="mfoot" id="wfoot">
@@ -448,31 +409,35 @@ details.dbg summary{cursor:pointer}
 
 <!-- JOB ADD MODAL -->
 <div class="overlay" id="jobaddmodal" hidden>
-  <div class="modal">
+  <div class="modal wide">
     <div class="mhead"><h2>새 공고 추가</h2><button class="btn ghost sm" onclick="closeJobAdd()">✕</button></div>
     <div class="mbody">
-      <div class="formrow" style="grid-template-columns:90px 1fr"><label>회사</label><input id="jaCompany" placeholder="예: SK하이닉스"></div>
-      <div class="formrow" style="grid-template-columns:90px 1fr"><label>직무</label><input id="jaRole" placeholder="예: 기반기술 (신입)"></div>
-      <div style="margin-top:10px">
-        <span class="lbl" style="font-size:12px;color:var(--sub);display:block;margin-bottom:6px">공고 원문 붙여넣기</span>
-        <textarea id="jaText" style="width:100%;min-height:130px;border:1px solid var(--line);border-radius:9px;padding:10px;font-family:inherit;font-size:13px;background:var(--bg);color:var(--ink)" placeholder="채용 공고 페이지 내용을 그대로 복사해서 붙여넣으세요"></textarea>
+      <div style="margin-bottom:18px">
+        <span class="lbl" style="font-size:12px;color:var(--sub);display:block;margin-bottom:6px">공고 원문 붙여넣기 — 회사명·직무는 여기서 자동으로 뽑아요</span>
+        <textarea id="jaText" style="width:100%;min-height:120px;border:1px solid var(--line);border-radius:9px;padding:10px;font-family:inherit;font-size:13px;background:var(--bg);color:var(--ink)" placeholder="채용 공고 페이지 내용을 그대로 복사해서 붙여넣으세요"></textarea>
+        <div class="formrow" style="grid-template-columns:60px 1fr;margin-top:6px"><label>또는 URL</label><input id="jaUrl" placeholder="https://..."></div>
+      </div>
+
+      <div style="margin-bottom:18px">
+        <span class="lbl" style="font-size:12px;color:var(--sub);display:block;margin-bottom:6px">인재상 (선택)</span>
+        <div class="formrow" style="grid-template-columns:60px 1fr"><label>URL</label><input id="jaValuesUrl" placeholder="회사 소개·인재상 페이지 주소"></div>
+        <textarea id="jaValuesText" style="width:100%;min-height:60px;border:1px solid var(--line);border-radius:9px;padding:10px;font-family:inherit;font-size:13px;background:var(--bg);color:var(--ink);margin-top:6px" placeholder="또는 직접 입력"></textarea>
+      </div>
+
+      <div style="margin-bottom:18px">
+        <span class="lbl" style="font-size:12px;color:var(--sub);display:block;margin-bottom:6px">자소서 문항 (선택 — 비워두면 공고 원문에서 자동으로 찾아요)</span>
+        <div id="jaQuestions"></div>
+        <button class="btn sm" type="button" onclick="addQuestionRow()">+ 문항 추가</button>
+      </div>
+
+      <div>
+        <span class="lbl" style="font-size:12px;color:var(--sub);display:block;margin-bottom:6px">참고자료 (선택) — 직무기술서 PDF·이미지를 올리면 텍스트를 뽑아 여기에 추가해요</span>
+        <textarea id="jaReference" style="width:100%;min-height:80px;border:1px solid var(--line);border-radius:9px;padding:10px;font-family:inherit;font-size:13px;background:var(--bg);color:var(--ink)" placeholder="추가 참고 자료를 붙여넣거나, 아래에서 파일을 올리세요"></textarea>
+        <input type="file" id="jaFile" accept=".pdf,.jpg,.jpeg,.png" style="margin-top:6px">
+        <span id="jaFileStatus" class="sub" style="font-size:11.5px;display:block;margin-top:4px"></span>
       </div>
     </div>
     <div class="mfoot"><button class="btn" onclick="closeJobAdd()">취소</button><button class="btn primary" onclick="submitJobAdd()">분석 시작</button></div>
-  </div>
-</div>
-
-<!-- FLASHCARD MODAL -->
-<div class="overlay" id="flashmodal" hidden>
-  <div class="modal" style="width:440px">
-    <div class="mhead"><h2>복습 카드</h2><button class="btn ghost sm" onclick="closeFlash()">✕</button></div>
-    <div class="mbody">
-      <div class="flash" id="flashcard" onclick="this.classList.toggle('flip')">
-        <div class="q">L1 정규화는 왜 변수 선택 효과가 있을까?<br><span style="font-size:11.5px;color:var(--sub)">(클릭해서 답 보기)</span></div>
-        <div class="a">가중치의 <b>절대값</b> 합을 최소화하다 보니, 등고선(마름모)의 꼭짓점에서 최적해가 만나 일부 가중치가 정확히 0이 됨 — L2(원)는 꼭짓점이 없어 0이 되기 어려움.<br><br><span class="chip">3dp_raw</span><span class="chip">ml_raw</span></div>
-      </div>
-      <div class="quick"><button class="btn sm" onclick="toast('다음 복습 예정: 3일 뒤')">아직 헷갈려요</button><button class="btn sm primary" onclick="toast('복습 완료 — 다음 복습 예정: 2주 뒤')">이제 알겠어요</button></div>
-    </div>
   </div>
 </div>
 
@@ -490,41 +455,41 @@ function toast(msg){
   clearTimeout(window._tt); window._tt = setTimeout(() => t.classList.remove('show'), 2600);
 }
 
+/* =================== API HELPERS =================== */
+async function api(path, opts){
+  const res = await fetch(path, opts);
+  if(!res.ok){
+    let msg = res.statusText;
+    try{ const j = await res.json(); msg = j.detail || msg; }catch(e){}
+    throw new Error(msg);
+  }
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
+}
+function apiPost(path, body){ return api(path, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)}); }
+function apiPut(path, body){ return api(path, {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)}); }
+function esc(s){ return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function attrEsc(s){ return String(s ?? '').replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
+
 /* =================== DRIVE (home) =================== */
-const EXP = {
-  club: {title:'동아리 홍보 웹사이트 제작', grade:1, kind:'activity', badge:'활성', role:'ok', ev:'4/4',
-    files:[['최종보고서.md','원본'],['커밋로그.txt','원본']],
-    facts:[['본인이 React로 프론트엔드와 지원 폼을 직접 구현함.', '커밋로그.txt', false],['모집 지원자 40명으로 전년 대비 2배 증가함.', '최종보고서.md', false]],
-    reflect:''},
-  phm: {title:'건설장비 유압 시스템 PHM', grade:2, kind:'project', badge:'핵심', role:'ok', ev:'9/9',
-    files:[['최종보고서.md','원본'],['분석노트.md','원본'],['raw_sensor.csv','원본']],
-    facts:[['엔진 회전수·유압 펌프 부하로 3가지 상태를 구분하는 규칙을 정의함.', '분석노트.md', false],['상태별 분할 학습으로 F1-score를 0.62 → 0.78로 개선함.', '최종보고서.md', false]],
-    reflect:'상태를 안 나누면 오탐이 왜 그렇게 많이 나는지 처음엔 이해가 안 됐는데, 실제 로그를 하나씩 뜯어보고서야 감이 왔다.'},
-  ml: {title:'머신러닝개론 · 정규화와 과적합', grade:2, kind:'course', badge:'활성', role:'ok', ev:'4/4',
-    files:[['과제3.ipynb','원본'],['노트_과적합.md','원본']],
-    facts:[['5-겹 교차검증으로 랜덤 포레스트 정확도 0.94를 확인함.', '과제3.ipynb', false],['L1이 변수 선택 효과를 갖는 이유는 아직 헷갈린다고 본인이 표시함.', '노트_과적합.md', false]],
-    reflect:''},
-  '3dp': {title:'3D 프린터 PHM 이상탐지 시스템', grade:3, kind:'project', badge:'핵심', role:'ok', ev:'10/10',
-    files:[['최종보고서.md','원본'],['설계문서.md','원본'],['inference_server.py','원본']],
-    facts:[['센서 데이터를 50Hz로 수집하고 Autoencoder를 정상 데이터로만 학습함.', '설계문서.md', false],['검증 임계값을 95→99퍼센타일로 올려 F1-score를 0.71 → 0.86으로 개선함.', '최종보고서.md', false],['FastAPI 기반 실시간 추론 서버에 모델을 탑재함.', '최종보고서.md', false]],
-    reflect:''},
-  field_camp: {title:'FIELD CAMP 제조 공정 시뮬레이션', grade:3, kind:'activity', badge:'활성', role:'bad', ev:'7/7',
-    files:[['결과보고서.md','원본']],
-    facts:[['시뮬레이션으로 시간당 생산량 132% 개선안을 팀 성과로 도출함.', '결과보고서.md', false],['본인이 구체적으로 어떤 역할을 맡았는지 문서에 명시되어 있지 않음.', '결과보고서.md', true]],
-    reflect:''},
-  heat: {title:'열처리 공정 이상탐지 (개인)', grade:3, kind:'project', badge:'핵심', role:'ok', ev:'7/7',
-    files:[['README.md','원본'],['isolation_forest.py','원본']],
-    facts:[['온도 변화율·구간 편차를 특징으로 Isolation Forest를 적용함.', 'README.md', false],['이상 구간 재현율을 규칙 기반 0.64 → 0.91로 개선함.', 'README.md', false]],
-    reflect:''}
-};
-const GRADES = [1,2,3];
+let EXPERIENCES = [];
 let drivePath = []; // [] root | [grade] | [grade, expId]
 
-function crumbLabel(seg){ return typeof seg === 'number' ? seg+'학년' : EXP[seg].title; }
+async function loadExperiences(){
+  EXPERIENCES = await api('/api/experiences');
+  renderDrive();
+  renderScopebar();
+}
+function gradesPresent(){ return [...new Set(EXPERIENCES.map(e=>e.grade))].sort((a,b)=>a-b); }
+function crumbLabel(seg){
+  if(typeof seg === 'number') return seg+'학년';
+  const e = EXPERIENCES.find(x=>x.id===seg);
+  return e ? e.title : seg;
+}
 function renderCrumbs(){
   const el = document.getElementById('crumbs');
   let html = '<button onclick="goDrive([])">내 드라이브</button>';
-  drivePath.forEach((seg,i) => { html += '<span class="sep">/</span><button onclick="goDrive(driveSlice('+i+'))">'+crumbLabel(seg)+'</button>'; });
+  drivePath.forEach((seg,i) => { html += '<span class="sep">/</span><button onclick="goDrive(driveSlice('+i+'))">'+esc(crumbLabel(seg))+'</button>'; });
   el.innerHTML = html;
 }
 function driveSlice(i){ return drivePath.slice(0,i+1); }
@@ -533,234 +498,471 @@ function goDrive(path){ drivePath = path; renderDrive(); }
 function renderDrive(){
   renderCrumbs();
   const area = document.getElementById('driveArea');
+  if(!EXPERIENCES.length){
+    area.innerHTML = '<div class="sub" style="padding:20px">아직 등록된 경험이 없습니다. "+ 새 폴더 열기"로 첫 폴더를 분석해보세요.</div>';
+    return;
+  }
   if(drivePath.length === 0){
-    area.innerHTML = '<div class="drivegrid">' + GRADES.map(g => {
-      const n = Object.values(EXP).filter(e => e.grade === g).length;
-      return '<div class="dtile" onclick="goDrive(['+g+'])"><div class="dicon">📁</div><h3>'+g+'학년</h3><div class="dmeta">폴더 '+n+'개</div></div>';
+    area.innerHTML = '<div class="drivegrid">' + gradesPresent().map(g => {
+      const n = EXPERIENCES.filter(e => e.grade === g).length;
+      return `<div class="dtile" onclick="goDrive([${g}])"><div class="dicon">📁</div><h3>${g}학년</h3><div class="dmeta">폴더 ${n}개</div></div>`;
     }).join('') + '</div>';
     return;
   }
   if(drivePath.length === 1){
     const g = drivePath[0];
-    const items = Object.entries(EXP).filter(([,e]) => e.grade === g);
-    area.innerHTML = '<div class="drivegrid">' + items.map(([id,e]) => {
-      const dot = e.role === 'bad' ? 'bad' : (e.badge === '핵심' ? 'accent' : 'muted');
-      return '<div class="dtile" onclick=\'goDrive(['+g+',"'+id+'"])\'><div class="dicon">📁</div><h3>'+e.title+'</h3><div class="dmeta">근거 '+e.ev+(e.role==='bad' ? ' · <span style="color:var(--warn)">역할 확인 필요</span>' : '')+'</div></div>';
+    const items = EXPERIENCES.filter(e => e.grade === g);
+    area.innerHTML = '<div class="drivegrid">' + items.map(e => {
+      const warn = !e.my_role_verified ? ' · <span style="color:var(--warn)">역할 확인 필요</span>' : '';
+      return `<div class="dtile" onclick='goDrive([${g},"${attrEsc(e.id)}"])'><div class="dicon">📁</div><h3>${esc(e.title)}</h3><div class="dmeta">근거 ${e.evidence_verified}/${e.evidence_total}${warn}</div></div>`;
     }).join('') + '</div>';
     return;
   }
-  const id = drivePath[1]; const e = EXP[id];
-  let rows = '<div class="frow" onclick=\'openFile("'+id+'","experience.md","요약")\'><span class="ficon">📝</span><span class="fname">experience.md <span class="pill accent" style="margin-left:4px">AI 요약</span></span><span class="fdate">근거 '+e.ev+'</span></div>';
-  e.files.forEach(f => { rows += '<div class="frow" onclick=\'openFile("'+id+'","'+f[0]+'","원본")\'><span class="ficon">📄</span><span class="fname">'+f[0]+'</span><span class="fdate">원본</span></div>'; });
-  if(e.reflect){ rows += '<div class="frow" onclick=\'openFile("'+id+'","내 생각.md","노트")\'><span class="ficon">💭</span><span class="fname">내 생각.md <span class="pill muted" style="margin-left:4px">내 노트</span></span><span class="fdate">비공개</span></div>'; }
-  area.innerHTML = '<div class="dactions"><button class="btn sm primary" onclick=\'goChatScoped("'+id+'")\'>💬 이 폴더로 챗봇에서 대화하기</button></div><div class="flist">'+rows+'</div>';
+  const id = drivePath[1]; const e = EXPERIENCES.find(x=>x.id===id);
+  if(!e){ drivePath = []; renderDrive(); return; }
+  let rows = `<div class="frow" onclick='openExperienceSummary("${attrEsc(id)}")'><span class="ficon">📝</span><span class="fname">experience.md <span class="pill accent" style="margin-left:4px">AI 요약</span></span><span class="fdate">근거 ${e.evidence_verified}/${e.evidence_total}</span></div>`;
+  e.sources.forEach(s => { rows += `<div class="frow" onclick='openSourceFile("${attrEsc(id)}","${attrEsc(s)}")'><span class="ficon">📄</span><span class="fname">${esc(s)}</span><span class="fdate">원본</span></div>`; });
+  area.innerHTML = `<div class="dactions"><button class="btn sm primary" onclick='goChatScoped("${attrEsc(id)}")'>💬 이 폴더로 챗봇에서 대화하기</button></div><div class="flist">${rows}</div>`;
 }
-function openFile(id, name, kind){
-  const e = EXP[id];
-  document.getElementById('fmKind').textContent = e.title + ' · ' + kind;
-  document.getElementById('fmName').textContent = name;
-  const body = document.getElementById('fmBody');
-  if(name === 'experience.md'){
-    body.innerHTML = '<div class="factlist">' + e.facts.map(f => '<div class="fact '+(f[2]?'unver':'')+'"><div class="txt">'+(f[2]?'⚠ ':'')+f[0]+'<br><span class="chip">'+f[1]+'</span></div></div>').join('') + '</div>';
-  } else if(name === '내 생각.md'){
-    body.innerHTML = '<div class="filebody">'+e.reflect+'</div>';
-  } else {
-    body.innerHTML = '<div class="filebody">(원본 파일 미리보기 — 실제 구현에서는 로컬 파일을 그대로 열거나 텍스트로 렌더링합니다)\n\n'+name+' 은 이 프로젝트 요약을 만들 때 근거로 쓰인 원본 자료입니다.</div>';
+function factRows(facts){
+  const rows = [];
+  for(const [key,label] of [['actions','행동'],['decisions','의사결정'],['results','결과']]){
+    for(const f of (facts[key]||[])){
+      // 출처(provenance)와 근거 상태를 구분해서 보여준다. SCHEMA.md §2.3
+      const selfReported = (f.provenance_type || 'document') === 'user_statement';
+      const unver = !selfReported && !f.verified;   // 자료 근거가 있어야 할 사실인데 없는 경우
+      const badge = selfReported
+        ? ' <span class="pill warn" style="margin-left:4px">본인 확인</span>'
+        : '';
+      const prior = (f.prior_text || f.corrected_from)
+        ? `<br><span class="sub" style="font-size:11.5px">기존: ${esc(f.prior_text || f.corrected_from)}</span>`
+        : '';
+      rows.push(`<div class="fact ${unver?'unver':''}"><div class="txt">${unver?'⚠ ':''}(${esc(f.owner)}) ${esc(f.text)}${badge}<br><span class="chip">${esc(f.tag||label)}</span>${prior}</div></div>`);
+    }
   }
+  return rows.join('') || '<div class="sub">기록된 사실이 없습니다.</div>';
+}
+async function openExperienceSummary(id){
+  const e = EXPERIENCES.find(x=>x.id===id);
+  document.getElementById('fmKind').textContent = (e?e.title:id) + ' · AI 요약';
+  document.getElementById('fmName').textContent = 'experience.md';
+  document.getElementById('fmBody').innerHTML = '<div class="sub">불러오는 중…</div>';
   document.getElementById('filemodal').hidden = false;
+  try{
+    const detail = await api(`/api/experiences/${encodeURIComponent(id)}`);
+    document.getElementById('fmBody').innerHTML = `<div class="factlist">${factRows(detail.facts)}</div>`;
+  }catch(err){
+    document.getElementById('fmBody').innerHTML = `<div class="filebody">불러오지 못했습니다: ${esc(err.message)}</div>`;
+  }
+}
+async function openSourceFile(id, source){
+  const e = EXPERIENCES.find(x=>x.id===id);
+  document.getElementById('fmKind').textContent = (e?e.title:id) + ' · 원본';
+  document.getElementById('fmName').textContent = source;
+  document.getElementById('fmBody').innerHTML = '<div class="sub">불러오는 중…</div>';
+  document.getElementById('filemodal').hidden = false;
+  try{
+    const res = await api(`/api/experiences/${encodeURIComponent(id)}/sources/${encodeURIComponent(source)}`);
+    document.getElementById('fmBody').innerHTML = `<div class="filebody">${esc(res.text)}</div>`;
+  }catch(err){
+    document.getElementById('fmBody').innerHTML = `<div class="filebody">불러오지 못했습니다: ${esc(err.message)}</div>`;
+  }
 }
 function closeFile(){ document.getElementById('filemodal').hidden = true; }
 function goChatScoped(id){ show('chat'); setScope(id); }
-renderDrive();
 
-/* =================== WIZARD =================== */
-let wstep = 1, wtimer;
-function openWizard(){ wstep = 1; renderWizard(); document.getElementById('wizard').hidden = false; }
-function closeWizard(){ document.getElementById('wizard').hidden = true; clearTimeout(wtimer); }
+/* =================== WIZARD (실제 ingest) =================== */
+let wstep = 1, wizardResult = null;
+function openWizard(){
+  wstep = 1; wizardResult = null;
+  document.getElementById('wfolder').value = '';
+  document.getElementById('wgrade').value = '3';
+  renderWizard();
+  document.getElementById('wizard').hidden = false;
+}
+function closeWizard(){ document.getElementById('wizard').hidden = true; }
 function renderWizard(){
   ['1','2','3'].forEach(n => document.getElementById('st'+n).classList.toggle('done', Number(n) <= wstep));
   document.getElementById('wstep1').hidden = wstep !== 1;
   document.getElementById('wstep2').hidden = wstep !== 2;
   document.getElementById('wstep3').hidden = wstep !== 3;
-  const titles = {1:'새 폴더 열기', 2:'분석 중…', 3:'요약 확인'};
-  document.getElementById('wtitle').textContent = titles[wstep];
+  document.getElementById('wtitle').textContent = {1:'새 폴더 열기', 2:'분석 중…', 3:'요약 확인'}[wstep];
   const foot = document.getElementById('wfoot');
   if(wstep === 2){ foot.innerHTML = '<button class="btn" onclick="closeWizard()">백그라운드로 두기</button>'; }
-  else if(wstep === 3){ foot.innerHTML = '<button class="btn" onclick="closeWizard()">취소</button><button class="btn primary" onclick="finishWizard()">저장하고 마치기</button>'; }
+  else if(wstep === 3){ foot.innerHTML = '<button class="btn primary" onclick="closeWizard()">닫기</button>'; }
   else { foot.innerHTML = '<button class="btn" onclick="closeWizard()">취소</button><button class="btn primary" onclick="wizardNext()">다음</button>'; }
 }
-function wizardNext(){
-  if(wstep === 1){
-    wstep = 2; renderWizard();
-    const steps = document.querySelectorAll('#proglist .progitem');
-    steps.forEach((s,i) => { s.classList.remove('done','active'); s.querySelector('.ico').textContent = i+1; });
-    let i = 2;
-    steps[0].classList.add('done'); steps[0].querySelector('.ico').textContent = '✓';
-    steps[1].classList.add('done'); steps[1].querySelector('.ico').textContent = '✓';
-    steps[2].classList.add('active'); steps[2].querySelector('.ico').textContent = '…';
-    wtimer = setInterval(() => {
-      if(i >= steps.length){ clearInterval(wtimer); wstep = 3; renderWizard(); return; }
-      steps[i-1].classList.remove('active'); steps[i-1].classList.add('done'); steps[i-1].querySelector('.ico').textContent = '✓';
-      if(i < steps.length){ steps[i].classList.add('active'); steps[i].querySelector('.ico').textContent = '…'; }
-      i++;
-    }, 900);
+async function wizardNext(){
+  if(wstep !== 1) return;
+  const folder = document.getElementById('wfolder').value.trim();
+  const grade = Number(document.getElementById('wgrade').value);
+  if(!folder){ toast('폴더 경로를 입력하세요'); return; }
+  wstep = 2; renderWizard();
+  try{
+    wizardResult = await apiPost('/api/experiences', {folder, grade});
+    wstep = 3; renderWizard(); renderWizardResult();
+    await loadExperiences();
+    await loadProfileTiles();
+    toast('저장되었습니다 — 드라이브와 프로필에 반영됐어요');
+  }catch(err){
+    wstep = 1; renderWizard();
+    toast('분석 실패: ' + err.message.slice(0,150));
   }
 }
-function finishWizard(){ closeWizard(); toast('저장되었습니다 — 드라이브와 프로필에 반영됐어요'); }
+function renderWizardResult(){
+  const {meta, facts} = wizardResult;
+  document.getElementById('w3title').textContent = meta.title;
+  document.getElementById('w3sub').textContent = `${meta.grade}학년 · ${meta.kind} · 근거 ${meta.evidence_verified}/${meta.evidence_total} 확인됨`;
+  document.getElementById('w3facts').innerHTML = factRows(facts);
+  const oq = meta.open_questions || [];
+  document.getElementById('w3questions').innerHTML = oq.length
+    ? '<div class="sub" style="margin-top:10px">확인이 필요한 질문</div><ul style="margin:6px 0 0;padding-left:18px;font-size:12.5px">' + oq.map(q=>`<li>${esc(q)}</li>`).join('') + '</ul>'
+    : '';
+}
 
 /* =================== JOBS =================== */
-const JOBS = [
-  {id:'hyundai', mark:'현', company:'현대자동차', role:'생산기술 (신입)', status:'분석완료', ready:true},
-  {id:'hynix', mark:'하', company:'SK하이닉스', role:'기반기술 (신입)', status:'등록만 됨', ready:false}
-];
+let JOBS = [];
+let currentJobId = null, currentJobResult = null;
+async function loadJobs(){ JOBS = await api('/api/jobs'); renderJobRows(); }
 function renderJobRows(){
-  document.getElementById('jobRows').innerHTML = JOBS.map(j =>
-    '<div class="jobrow" onclick="openJobDetail(\''+j.id+'\')"><div class="jmark">'+j.mark+'</div><div class="jinfo"><b>'+j.company+'</b><span>'+j.role+'</span></div><span class="pill '+(j.ready?'ok':'muted')+'">'+j.status+'</span></div>'
-  ).join('');
+  document.getElementById('jobRows').innerHTML = JOBS.length ? JOBS.map(j =>
+    `<div class="jobrow" onclick='openJobDetail("${attrEsc(j.id)}")'><div class="jmark">${esc(j.company.slice(0,1))}</div><div class="jinfo"><b>${esc(j.company)}</b><span>${esc(j.role)}</span></div><span class="pill ok">${esc(j.status)}</span></div>`
+  ).join('') : '<div class="sub" style="padding:20px">아직 등록된 공고가 없습니다.</div>';
 }
-function openJobDetail(id){
+async function openJobDetail(id){
   document.getElementById('jobList').hidden = true;
   document.getElementById('jobDetail').hidden = false;
-  const j = JOBS.find(x => x.id === id);
-  const body = document.getElementById('jobDetailBody');
-  if(!j.ready){
-    body.innerHTML = '<div class="topline"><div><h1>'+j.company+' · '+j.role+'</h1><div class="desc">아직 분석 전이에요. 공고 원문을 등록하면 인재상 정리와 자소서 매칭이 시작됩니다.</div></div></div>'
-      + '<div class="card" style="padding:18px"><textarea style="width:100%;min-height:140px;border:1px solid var(--line);border-radius:9px;padding:10px;font-family:inherit;font-size:13px;background:var(--bg);color:var(--ink)" placeholder="공고 원문을 붙여넣으세요"></textarea>'
-      + '<div style="margin-top:10px"><button class="btn primary" onclick="toast(\''+j.company+' 공고 분석을 시작합니다 (시안)\')">분석 시작</button></div></div>';
-    return;
+  document.getElementById('jobDetailBody').innerHTML = '<div class="sub">불러오는 중…</div>';
+  currentJobId = id;
+  try{
+    currentJobResult = await api(`/api/jobs/${encodeURIComponent(id)}`);
+    renderJobDetail(currentJobResult);
+  }catch(err){
+    document.getElementById('jobDetailBody').innerHTML = `<div class="sub">불러오지 못했습니다: ${esc(err.message)}</div>`;
   }
-  body.innerHTML = `
-    <div class="topline"><div><h1>${j.company} · ${j.role}</h1><div class="desc">공고 원문을 분석해 만든 매칭·자소서 초안입니다.</div></div></div>
+}
+function renderJobDetail(result){
+  const {job, plan, answers} = result;
+  const strengthPill = {'강함':'ok','보통':'warn','약함':'muted','없음':'muted'};
+  const links = plan.competency_links.map(l =>
+    `<tr><td><b>${esc(l.competency)}</b></td><td><span class="pill ${strengthPill[l.strength]||'muted'}">${esc(l.strength)}</span></td><td>${l.experience_ids.map(id=>`<span class="chip">${esc(id)}</span>`).join('')}</td><td>${esc(l.note)}</td></tr>`
+  ).join('');
+
+  // 문항 간 소재 중복 감지 (경험 id 겹침을 클라이언트에서 바로 계산 — 백엔드엔 아직 없음)
+  const idToQuestions = {};
+  answers.forEach((a,i) => a.experience_ids.forEach(id => { (idToQuestions[id]=idToQuestions[id]||[]).push(i); }));
+  const overlapIdx = new Set(Object.values(idToQuestions).filter(idxs=>idxs.length>1).flat());
+
+  const tabBtns = answers.map((a,i) =>
+    `<button data-jtab="${i}">문항 ${i+1}${overlapIdx.has(i)?' <span class="pill warn" style="margin-left:2px">⚠</span>':''}</button>`
+  ).join('');
+  const statusPill = {'통과':'ok','정제':'warn','경고':'warn','근거부족':'muted','해당없음':'muted','반영 안 됨':'muted'};
+  const panels = answers.map((a,i) => {
+    const overlapNote = overlapIdx.has(i)
+      ? `<div class="overlap">⚠ 이 답변, 다른 문항과 같은 경험(${a.experience_ids.map(esc).join(', ')})을 겹쳐 쓰고 있어요.</div>` : '';
+    const body = a.draft
+      ? `<div class="answer">${a.draft.split('\n').filter(Boolean).map(p=>`<p>${esc(p)}</p>`).join('')}</div>`
+        + (a.removed.length ? `<details class="dbg"><summary>자동 제거된 문장 ${a.removed.length}개</summary>${a.removed.map(esc).join('<br>')}</details>` : '')
+      : `<p class="empty">이 문항은 근거 자료로 답할 수 없어 초안을 만들지 않았습니다.${a.gap?' ('+esc(a.gap)+')':''}</p>`;
+    const revisions = (a.revisions||[]).map(r => `<div class="sub" style="font-size:11.5px;margin-top:4px">↳ "${esc(r.message)}" 반영함</div>`).join('');
+    return `<div id="jtab-${i}" hidden><div class="card qcard">
+      <div class="qhead"><div class="q">${esc(a.question)}</div><span class="pill ${statusPill[a.status]||'muted'}">${esc(a.status)}</span></div>
+      <div class="qmeta">${a.experience_ids.map(id=>`<span class="chip">${esc(id)}</span>`).join('')}<span class="sub" style="font-size:11.5px">재작성 ${a.attempts}회</span></div>
+      ${overlapNote}${body}${revisions}
+      <div style="margin-top:12px;border-top:1px solid var(--line);padding-top:10px;display:flex;gap:6px">
+        <input class="jrev-input" data-idx="${i}" style="flex:1;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:7px;padding:7px 9px;font-size:13px" placeholder="이렇게 고쳐줘 — 예: 두 번째 문장 빼고 더 구체적으로 써줘">
+        <button class="btn sm primary jrev-send" data-idx="${i}">수정 요청</button>
+      </div>
+    </div></div>`;
+  }).join('');
+
+  document.getElementById('jobDetailBody').innerHTML = `
+    <div class="topline"><div><h1>${esc(job.company)} · ${esc(job.role)}</h1><div class="desc">공고 원문을 분석해 만든 매칭·자소서 초안입니다. 문항마다 아래 입력창으로 계속 고쳐 쓸 수 있어요.</div></div></div>
     <div class="card" style="padding:15px 18px;margin-bottom:18px;display:flex;gap:26px;flex-wrap:wrap">
-      <div><div class="sub" style="font-size:11.5px;margin-bottom:4px">핵심 역량</div><div style="font-size:13px">데이터 분석 · 문제 해결 · 팀워크 · 공정 개선</div></div>
-      <div><div class="sub" style="font-size:11.5px;margin-bottom:4px">인재상</div><div style="font-size:13px">데이터로 말하는 엔지니어 · 현장을 끝까지 파고드는 사람</div></div>
+      <div><div class="sub" style="font-size:11.5px;margin-bottom:4px">핵심 역량</div><div style="font-size:13px">${esc(job.key_competencies.join(' · '))}</div></div>
+      <div><div class="sub" style="font-size:11.5px;margin-bottom:4px">인재상</div><div style="font-size:13px">${esc(job.values.join(' · ')) || '명시 없음'}</div></div>
     </div>
-    <div class="tabs" id="mtabs">
-      <button data-mtab="links" class="active">역량 ↔ 경험</button>
-      <button data-mtab="q1">문항 1 <span class="pill warn" style="margin-left:2px">⚠</span></button>
-      <button data-mtab="q2">문항 2</button>
-      <button data-mtab="q3">문항 3</button>
-    </div>
-    <div id="mtab-links">
-      <div class="card" style="padding:4px 0">
-        <table class="match">
-          <tr><th>직무 핵심 역량</th><th>근거 강도</th><th>연결 경험</th><th>이유</th></tr>
-          <tr><td><b>데이터 분석 능력</b></td><td><span class="pill ok">강함</span></td><td><span class="chip">phm</span><span class="chip">3dp</span></td><td>정량 지표 개선을 직접 수행한 사실이 검증됨</td></tr>
-          <tr><td><b>문제 해결 능력</b></td><td><span class="pill ok">강함</span></td><td><span class="chip">3dp</span><span class="chip">heat</span></td><td>문제 정의부터 해결까지 본인 역할로 확인됨</td></tr>
-          <tr><td><b>팀워크 및 커뮤니케이션</b></td><td><span class="pill warn">보통</span></td><td><span class="chip">3dp</span><span class="chip">field_camp</span></td><td>협업 사실은 있으나 개인 역할이 명확치 않음</td></tr>
-          <tr><td><b>공정 개선 능력</b></td><td><span class="pill warn">보통</span></td><td><span class="chip">field_camp</span></td><td>시뮬레이션 경험은 있으나 현장 적용 사례는 없음</td></tr>
-        </table>
-      </div>
-    </div>
-    <div id="mtab-q1" hidden>
-      <div class="overlap">⚠ 이 답변, 문항 2와 같은 "3D 프린터 F1-score 개선" 소재를 겹쳐 쓰고 있어요.<button class="btn sm" onclick="toast('건설장비 PHM 경험으로 바꿔 다시 써봤어요 (예시 시안)')">다른 경험으로 바꿔쓰기</button></div>
-      <div class="card qcard">
-        <div class="qhead"><div class="q">1. 지원 직무를 선택한 이유와 이를 위해 준비한 과정을 서술하시오. (500자)</div><span class="pill warn">정제됨</span></div>
-        <div class="qmeta"><span class="chip">3dp_raw</span><span class="chip">phm_raw</span><span class="sub" style="font-size:11.5px">재작성 2회 · gpt-4o 판정자 검토</span></div>
-        <div class="answer">
-          <p>건설장비 유압 시스템 PHM 데이터 분석 프로젝트에서 데이터 분석을 통해 문제를 해결한 경험이 있습니다. 초기에는 가동 상태를 구분하지 않고 하나의 임계값을 적용했으나 정상 구간에서 오탐이 빈번했습니다. 이를 해결하기 위해 엔진 회전수와 유압 펌프 부하를 기준으로 세 가지 상태를 구분하는 규칙을 정의했습니다.</p>
-          <p class="strike">이러한 경험을 통해 데이터 기반 문제 해결 능력을 기를 수 있었습니다.</p>
-        </div>
-        <details class="dbg"><summary>자동 제거된 문장 1개 — 판정자가 근거 없음으로 판정</summary>근거 자료에 없는 소감·일반화 문장이라 제거됨</details>
-      </div>
-    </div>
-    <div id="mtab-q2" hidden>
-      <div class="card qcard">
-        <div class="qhead"><div class="q">2. 데이터를 활용해 문제를 해결한 경험을 서술하시오. (600자)</div><span class="pill ok">통과</span></div>
-        <div class="qmeta"><span class="chip">phm_raw</span><span class="chip">3dp_raw</span><span class="chip">heat_raw</span><span class="sub" style="font-size:11.5px">모든 문장 근거 확인됨</span></div>
-        <div class="answer">
-          <p>3D 프린터 PHM 이상탐지 시스템에서는 센서 데이터를 50Hz로 수집하고 Autoencoder를 정상 데이터로 학습했습니다. 검증 데이터의 임계값을 95퍼센타일에서 99퍼센타일로 조정해 오탐을 줄였고, 프로젝트 결과 불량 탐지 F1-score가 0.71에서 0.86으로 향상되었습니다.</p>
-          <p>개인 프로젝트로 진행한 열처리 공정 이상탐지에서는 온도 변화율과 구간 편차를 특징으로 Isolation Forest를 적용해, 규칙 기반 알람 대비 이상 구간 재현율을 0.64에서 0.91로 높였습니다.</p>
-        </div>
-      </div>
-    </div>
-    <div id="mtab-q3" hidden>
-      <div class="card qcard">
-        <div class="qhead"><div class="q">3. 팀 프로젝트에서 갈등이나 의견 충돌을 극복한 경험을 서술하시오. (500자)</div><span class="pill muted">근거부족</span></div>
-        <div class="qmeta"><span class="sub" style="font-size:12px">문항이 요구하는 상황(갈등·의견 충돌)이 경험 기록에 없어 작성하지 않음</span></div>
-        <p class="empty">이 문항은 근거 자료로 답할 수 없어 초안을 만들지 않았습니다. 지어내는 대신, 아래에서 직접 경험을 알려주시면 반영할게요.</p>
-        <div class="quick"><button class="btn sm" onclick="toast('입력 폼이 열립니다 (시안)')">직접 입력하기</button></div>
-      </div>
-    </div>`;
-  document.getElementById('mtabs').addEventListener('click', e => {
-    const btn = e.target.closest('button[data-mtab]'); if(!btn) return;
-    document.querySelectorAll('#mtabs button').forEach(b => b.classList.toggle('active', b === btn));
-    ['links','q1','q2','q3'].forEach(k => document.getElementById('mtab-'+k).hidden = ('mtab-'+k) !== ('mtab-'+btn.dataset.mtab));
+    <div class="tabs" id="jtabs"><button data-jtab="links" class="active">역량 ↔ 경험</button>${tabBtns}</div>
+    <div id="jtab-links"><div class="card" style="padding:4px 0"><table class="match">
+      <tr><th>직무 핵심 역량</th><th>근거 강도</th><th>연결 경험</th><th>이유</th></tr>${links}
+    </table></div></div>
+    ${panels}`;
+  document.getElementById('jtabs').addEventListener('click', e => {
+    const btn = e.target.closest('button[data-jtab]'); if(!btn) return;
+    document.querySelectorAll('#jtabs button').forEach(b => b.classList.toggle('active', b === btn));
+    document.getElementById('jtab-links').hidden = btn.dataset.jtab !== 'links';
+    answers.forEach((_,i) => { document.getElementById('jtab-'+i).hidden = String(i) !== btn.dataset.jtab; });
   });
 }
+document.getElementById('jobDetailBody').addEventListener('click', async e => {
+  const btn = e.target.closest('.jrev-send'); if(!btn) return;
+  const idx = Number(btn.dataset.idx);
+  const input = document.querySelector(`.jrev-input[data-idx="${idx}"]`);
+  const message = input.value.trim(); if(!message) return;
+  btn.disabled = true; btn.textContent = '수정 중…';
+  try{
+    const res = await apiPost(`/api/jobs/${encodeURIComponent(currentJobId)}/answers/${idx}/revise`, {message});
+    currentJobResult.answers[idx] = res.answer;
+    renderJobDetail(currentJobResult);
+    toast('반영했어요');
+  }catch(err){
+    toast('수정 실패: ' + err.message.slice(0,150));
+    btn.disabled = false; btn.textContent = '수정 요청';
+  }
+});
 function closeJobDetail(){ document.getElementById('jobList').hidden = false; document.getElementById('jobDetail').hidden = true; }
-function openJobAdd(){ document.getElementById('jobaddmodal').hidden = false; }
-function closeJobAdd(){ document.getElementById('jobaddmodal').hidden = true; }
-function submitJobAdd(){
-  const c = document.getElementById('jaCompany').value || '새 회사'; const r = document.getElementById('jaRole').value || '직무 미기재';
-  JOBS.push({id:'job'+JOBS.length, mark:c[0], company:c, role:r, status:'분석 중', ready:false});
-  renderJobRows(); closeJobAdd(); toast('등록했어요 — 목록에서 열어 분석을 시작하세요');
+function addQuestionRow(value){
+  const wrap = document.getElementById('jaQuestions');
+  const row = document.createElement('div');
+  row.style.cssText = 'display:flex;gap:6px;margin-bottom:6px';
+  row.innerHTML = `<input class="ja-question" style="flex:1;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:7px;padding:7px 9px;font-size:13px" value="${attrEsc(value||'')}" placeholder="예: 지원 동기를 서술하시오 (500자)"><button class="btn sm ghost" type="button" onclick="this.parentElement.remove()">✕</button>`;
+  wrap.appendChild(row);
 }
-renderJobRows();
+function openJobAdd(){
+  ['jaText','jaUrl','jaValuesUrl','jaValuesText','jaReference'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('jaFile').value = '';
+  document.getElementById('jaFileStatus').textContent = '';
+  document.getElementById('jaQuestions').innerHTML = '';
+  document.getElementById('jobaddmodal').hidden = false;
+}
+function closeJobAdd(){ document.getElementById('jobaddmodal').hidden = true; }
+document.getElementById('jaFile').addEventListener('change', async e => {
+  const file = e.target.files[0]; if(!file) return;
+  const status = document.getElementById('jaFileStatus');
+  status.textContent = '텍스트 추출 중…';
+  const form = new FormData(); form.append('file', file);
+  try{
+    const res = await fetch('/api/extract-file', {method:'POST', body: form});
+    if(!res.ok){ const j = await res.json().catch(()=>({})); throw new Error(j.detail || res.statusText); }
+    const data = await res.json();
+    const ref = document.getElementById('jaReference');
+    ref.value = (ref.value ? ref.value + '\n\n' : '') + `[${data.filename}에서 추출]\n` + data.text;
+    status.textContent = `"${data.filename}"에서 텍스트를 뽑아 참고자료에 추가했어요. 필요하면 직접 수정하세요.`;
+  }catch(err){
+    status.textContent = '추출 실패: ' + err.message.slice(0,150);
+  }
+});
+async function submitJobAdd(){
+  const text = document.getElementById('jaText').value.trim();
+  const url = document.getElementById('jaUrl').value.trim();
+  const valuesText = document.getElementById('jaValuesText').value.trim();
+  const valuesUrl = document.getElementById('jaValuesUrl').value.trim();
+  const referenceText = document.getElementById('jaReference').value.trim();
+  const questions = [...document.querySelectorAll('.ja-question')].map(i => i.value.trim()).filter(Boolean);
+  if(!text && !url && !referenceText){ toast('공고 원문, URL, 참고자료 중 하나는 입력해야 해요'); return; }
+  closeJobAdd();
+  toast('공고 분석 중… (URL을 읽고 여러 번 LLM을 호출해서 다소 걸릴 수 있어요)');
+  try{
+    await apiPost('/api/jobs', {
+      text: text || null, url: url || null,
+      values_text: valuesText || null, values_url: valuesUrl || null,
+      reference_text: referenceText || null,
+      essay_questions: questions.length ? questions : null,
+    });
+    await loadJobs();
+    toast('분석 완료 — 목록에서 열어보세요');
+  }catch(err){
+    toast('분석 실패: ' + err.message.slice(0,150));
+  }
+}
 
 /* =================== CHAT =================== */
-const SCOPES = [{id:'all', label:'전체'}, {id:'phm', label:'건설장비 PHM'}, {id:'3dp', label:'3D 프린터 PHM'}, {id:'heat', label:'열처리'}, {id:'ml', label:'정규화 수업'}];
-let scope = 'all';
+let scope = null; // null = 전체
+let chatHistory = [];
 function renderScopebar(){
   const bar = document.getElementById('scopebar');
-  bar.innerHTML = '<span class="lbl">범위</span>' + SCOPES.map(s => '<button class="scopechip '+(s.id===scope?'active':'')+'" onclick="setScope(\''+s.id+'\')">'+s.label+'</button>').join('');
-  document.getElementById('scopenote').textContent = scope === 'all'
-    ? '전체 기록(경험 6건 + 공부 기록)에서 찾아 답합니다.'
-    : '"' + SCOPES.find(s=>s.id===scope).label + '" 폴더 안에서만 찾아 답합니다 — 다른 프로젝트 내용은 섞이지 않아요.';
+  const chips = [{id:null, label:'전체'}, ...EXPERIENCES.map(e=>({id:e.id, label:e.title}))];
+  bar.innerHTML = '<span class="lbl">범위</span>' + chips.map(s =>
+    `<button class="scopechip ${s.id===scope?'active':''}" onclick='setScope(${s.id?('"'+attrEsc(s.id)+'"'):'null'})'>${esc(s.label)}</button>`
+  ).join('');
+  const note = document.getElementById('scopenote');
+  if(scope === null){ note.textContent = `전체 기록(경험 ${EXPERIENCES.length}건 + 공부 기록)에서 찾아 답합니다.`; }
+  else{ const e = EXPERIENCES.find(x=>x.id===scope); note.textContent = `"${e?e.title:scope}" 폴더 안에서만 찾아 답합니다 — 다른 프로젝트 내용은 섞이지 않아요.`; }
 }
 function setScope(id){ scope = id; renderScopebar(); }
-renderScopebar();
 
-function pushMsg(cls, html, withPin){
+function pushMsg(cls, text, withPin){
   const log = document.getElementById('chatlog');
   const row = document.createElement('div'); row.className = 'msgrow ' + cls;
-  const bubble = document.createElement('div'); bubble.className = 'msg ' + cls; bubble.innerHTML = html;
+  const bubble = document.createElement('div'); bubble.className = 'msg ' + cls;
+  bubble.innerHTML = esc(text).replace(/\n/g,'<br>');
   row.appendChild(bubble);
   if(withPin){
     const p = document.createElement('button'); p.className = 'pin'; p.textContent = '☆';
-    p.onclick = () => { p.classList.toggle('on'); p.textContent = p.classList.contains('on') ? '★' : '☆'; if(p.classList.contains('on')) toast('이 메시지는 세션 요약에서 항상 유지됩니다'); };
+    p.onclick = () => { p.classList.toggle('on'); p.textContent = p.classList.contains('on') ? '★' : '☆'; };
     row.appendChild(p);
   }
   log.appendChild(row); log.scrollTop = log.scrollHeight;
   return row;
 }
-function pushConfirm(){
+function pushConfirm(correction){
   const log = document.getElementById('chatlog');
+  const expTitle = (EXPERIENCES.find(e=>e.id===correction.experience_id)||{}).title || correction.experience_id;
+  const isNew = correction.kind === 'new_fact';
   const div = document.createElement('div'); div.className = 'confirmcard';
-  div.innerHTML = `이 정정을 <b>3D 프린터 PHM 이상탐지 시스템</b> 기록에 반영할까요?
-    <div class="diff"><span class="old">FastAPI 기반 실시간 추론 서버에 모델을 탑재함 (본인)</span><span class="new">FastAPI 서버는 팀원 담당 · 본인은 모델 학습 담당</span></div>
-    <div class="row"><button class="btn sm primary" id="cf-yes">예, 반영할게요</button><button class="btn sm" id="cf-no">아니요, 이번 대화에서만</button></div>`;
+  div.innerHTML = isNew
+    ? `이 새 사실을 <b>${esc(expTitle)}</b> 기록에 추가할까요?
+       <div class="diff"><span class="new">+ ${esc(correction.corrected_text)}</span></div>
+       <div class="row"><button class="btn sm primary" id="cf-yes">예, 추가할게요</button><button class="btn sm" id="cf-no">아니요, 이번 대화에서만</button></div>`
+    : `이 정정을 <b>${esc(expTitle)}</b> 기록에 반영할까요?
+       <div class="diff"><span class="old">${esc(correction.original_text)}</span><span class="new">${esc(correction.corrected_text)}</span></div>
+       <div class="row"><button class="btn sm primary" id="cf-yes">예, 반영할게요</button><button class="btn sm" id="cf-no">아니요, 이번 대화에서만</button></div>`;
   log.appendChild(div); log.scrollTop = log.scrollHeight;
-  div.querySelector('#cf-yes').onclick = () => {
+  div.querySelector('#cf-yes').onclick = async () => {
     div.remove();
-    pushMsg('bot', '반영했습니다. 이제부터 이 경험을 인용할 때는 수정된 역할로 답할게요. <span class="cite">[정정 이력] 2026-09-22 · 이전 값은 기록에 남아있어요</span>', true);
-    toast('경험 기록 수정됨 — 변경 이력 저장');
+    try{
+      await apiPost('/api/corrections/confirm', {...correction, accept:true});
+      pushMsg('bot', isNew ? '추가했습니다. 앞으로 이 경험을 얘기할 때 반영할게요.' : '반영했습니다. 이제부터 이 경험을 인용할 때는 수정된 내용으로 답할게요.', true);
+      toast(isNew ? '경험 기록에 새 사실 추가됨' : '경험 기록 수정됨 — 변경 이력 저장');
+      await loadExperiences();
+    }catch(err){ toast('반영 실패: ' + err.message.slice(0,150)); }
   };
   div.querySelector('#cf-no').onclick = () => { div.remove(); pushMsg('bot', '네, 이번 대화에서만 참고하고 원본 기록은 그대로 둘게요.', true); };
   log.scrollTop = log.scrollHeight;
 }
-const CANNED = {
-  q1: { q: 'L1이랑 L2 정규화 차이 다시 설명해줘.', a: 'L1은 가중치의 절대값 합을 최소화해 일부 가중치를 0으로 만들고(변수 선택 효과), L2는 제곱합을 최소화해 가중치를 작게 유지합니다.<span class="cite">[노트_과적합.md] "L1이 변수 선택 효과가 있는 이유"는 아직 헷갈린다고 기록돼 있어요 — 복습 카드로 다시 볼까요?</span>' },
-  q2: { q: '내가 3D 프린터 프로젝트에서 뭘 담당했는지 알려줘.', a: '센서 데이터 수집·전처리, Autoencoder 기반 이상탐지 모델 구현, FastAPI 실시간 추론 서버 탑재를 담당했습니다.<span class="cite">[경험 3dp_raw] 최종보고서.md 역할표 근거로 검증됨</span>' }
-};
-document.querySelectorAll('.suggest button[data-q]').forEach(b => b.addEventListener('click', () => {
-  if(b.dataset.q === 'q3'){
-    pushMsg('user', '사실 FastAPI 서버는 내가 안 만들었어, 팀원이 만든 거야.', false);
-    setTimeout(pushConfirm, 300);
-    return;
+async function sendChat(text){
+  pushMsg('user', text, false);
+  const historyBefore = chatHistory;
+  try{
+    const res = await apiPost('/api/chat', {message:text, history:historyBefore, scope_id:scope});
+    chatHistory = res.history;
+    pushMsg('bot', res.answer, true);
+    if(res.correction) pushConfirm(res.correction);
+  }catch(err){
+    pushMsg('bot', '오류가 발생했어요: ' + err.message.slice(0,200), false);
   }
-  const c = CANNED[b.dataset.q]; pushMsg('user', c.q, false); setTimeout(() => pushMsg('bot', c.a, true), 260);
-}));
+}
+document.querySelectorAll('.suggest button').forEach(b => b.addEventListener('click', () => sendChat(b.textContent.trim())));
 document.getElementById('chatsend').addEventListener('click', () => {
-  const el = document.getElementById('chatinput'); if(!el.value.trim()) return;
-  const v = el.value; pushMsg('user', v, false);
-  if(v.includes('안 만들었') || v.includes('사실')) setTimeout(pushConfirm, 300);
-  else setTimeout(() => pushMsg('bot', '이 시안에서는 왼쪽 예시 질문 3개 흐름만 실제로 동작해요. 오른쪽 목록에서 골라보세요.', true), 260);
-  el.value = '';
+  const el = document.getElementById('chatinput'); const v = el.value.trim(); if(!v) return;
+  el.value = ''; sendChat(v);
 });
 document.getElementById('chatinput').addEventListener('keydown', e => { if(e.key === 'Enter') document.getElementById('chatsend').click(); });
 
-/* =================== FLASHCARD =================== */
-function openFlash(){ document.getElementById('flashcard').classList.remove('flip'); document.getElementById('flashmodal').hidden = false; }
-function closeFlash(){ document.getElementById('flashmodal').hidden = true; }
+/* =================== PROFILE =================== */
+let USER = null, PROFILE = null;
+async function loadUser(){
+  USER = await api('/api/user');
+  document.querySelector('.rail-foot .avatar').textContent = (USER.name||'?').slice(0,1);
+  document.querySelector('.rail-foot b').textContent = USER.name || '이름 미설정';
+  document.querySelector('.rail-foot span').textContent = [USER.school, USER.major, USER.grade?`${USER.grade}학년`:null].filter(Boolean).join(' · ') || '기본 정보를 입력해주세요';
+  document.getElementById('essayStyle').value = USER.essay_style || '';
+}
+async function saveEssayStyle(){
+  try{
+    USER = await apiPut('/api/user', {essay_style: document.getElementById('essayStyle').value});
+    toast('저장했어요 — 다음 자소서 작성부터 반영됩니다');
+  }catch(err){ toast('저장 실패: ' + err.message.slice(0,150)); }
+}
+async function loadProfileTiles(){
+  const total = EXPERIENCES.length;
+  const evTotal = EXPERIENCES.reduce((s,e)=>s+e.evidence_total,0);
+  const evVer = EXPERIENCES.reduce((s,e)=>s+e.evidence_verified,0);
+  const core = EXPERIENCES.filter(e=>e.importance.tier==='핵심').length;
+  const unverified = EXPERIENCES.filter(e=>!e.my_role_verified).length;
+  document.getElementById('profTiles').innerHTML = `
+    <div class="tile"><div class="num">${total}</div><div class="lbl">저장된 경험</div></div>
+    <div class="tile"><div class="num">${evVer}/${evTotal}</div><div class="lbl">근거 인용 검증 통과</div></div>
+    <div class="tile"><div class="num">${core}</div><div class="lbl">핵심 등급 경험</div></div>
+    <div class="tile"><div class="num">${unverified}</div><div class="lbl">역할 미확인 경험${unverified?'<span class="flag">⚠ 확인 필요</span>':''}</div></div>`;
+}
+function renderUserView(){
+  document.getElementById('pinfoView').innerHTML = `
+    <div class="formrow"><label>이름</label><div class="viewfield">${esc(USER.name||'미입력')}</div></div>
+    <div class="formrow"><label>학교 / 학과</label><div class="viewfield">${esc([USER.school,USER.major].filter(Boolean).join(' ') || '미입력')}</div></div>
+    <div class="formrow"><label>학년</label><div class="viewfield">${USER.grade?USER.grade+'학년':'미입력'}${USER.admission_year?` (${USER.admission_year}년 입학)`:''}</div></div>
+    <div class="formrow" style="align-items:flex-start"><label>진로 목표</label><div class="viewfield">${esc(USER.career_goal||'미입력')}</div></div>
+    <div style="margin-top:10px"><button class="btn sm" onclick="openUserEdit()">✎ 정보 수정</button></div>`;
+}
+function openUserEdit(){
+  document.getElementById('pinfoView').innerHTML = `
+    <div class="formrow"><label>이름</label><input id="ueName" value="${attrEsc(USER.name||'')}"></div>
+    <div class="formrow"><label>학교</label><input id="ueSchool" value="${attrEsc(USER.school||'')}"></div>
+    <div class="formrow"><label>학과</label><input id="ueMajor" value="${attrEsc(USER.major||'')}"></div>
+    <div class="formrow"><label>학년</label><input id="ueGrade" type="number" min="1" max="6" value="${USER.grade||''}"></div>
+    <div class="formrow"><label>입학년도</label><input id="ueYear" type="number" value="${USER.admission_year||''}"></div>
+    <div class="formrow" style="align-items:flex-start"><label>진로 목표</label><input id="ueGoal" value="${attrEsc(USER.career_goal||'')}"></div>
+    <div style="margin-top:10px;display:flex;gap:8px"><button class="btn sm primary" onclick="saveUserEdit()">저장</button><button class="btn sm" onclick="renderUserView()">취소</button></div>`;
+}
+async function saveUserEdit(){
+  const update = {
+    name: document.getElementById('ueName').value,
+    school: document.getElementById('ueSchool').value,
+    major: document.getElementById('ueMajor').value,
+    grade: Number(document.getElementById('ueGrade').value) || null,
+    admission_year: Number(document.getElementById('ueYear').value) || null,
+    career_goal: document.getElementById('ueGoal').value,
+  };
+  try{
+    USER = await apiPut('/api/user', update);
+    await loadUser(); renderUserView();
+    toast('저장했어요');
+  }catch(err){ toast('저장 실패: ' + err.message.slice(0,150)); }
+}
+function renderProfileSections(){
+  const p = PROFILE && PROFILE.json;
+  const chips = ids => ids.map(id=>`<span class="chip">${esc(id)}</span>`).join('');
+  document.getElementById('profCompetencies').innerHTML = (p && p.competencies.length)
+    ? p.competencies.map(c=>`<div class="card profcard"><h3>${esc(c.name)}</h3><p>${esc(c.description)}</p><div>${chips(c.experience_ids)}</div></div>`).join('')
+    : '<div class="sub">아직 프로필이 없습니다. "프로필 새로고침"을 눌러보세요.</div>';
+  document.getElementById('profTraits').innerHTML = (p && p.traits.length)
+    ? p.traits.map(t=>`<div class="card profcard"><h3>${esc(t.trait)}</h3><p>${esc(t.rationale)}</p><div>${chips(t.experience_ids)}</div></div>`).join('')
+    : '<div class="sub">아직 반복 관찰된 성향 없음</div>';
+  document.getElementById('profGaps').innerHTML = (p && p.gaps.length)
+    ? `<ul style="margin:0;padding-left:18px;font-size:13px;color:var(--ink-2)">${p.gaps.map(g=>`<li>${esc(g)}</li>`).join('')}</ul>`
+    : '<span class="sub">아직 없음</span>';
+}
+async function loadProfile(){
+  PROFILE = await api('/api/profile');
+  renderProfileSections();
+}
+async function rebuildProfile(){
+  toast('프로필 재계산 중… (몇 초 걸릴 수 있어요)');
+  try{
+    PROFILE = await apiPost('/api/profile/rebuild', {});
+    renderProfileSections();
+    toast('프로필을 새로 만들었어요');
+  }catch(err){ toast('실패: ' + err.message.slice(0,150)); }
+}
+
+/* =================== STUDY =================== */
+let STUDY = [];
+async function loadStudy(){
+  STUDY = await api('/api/study');
+  document.querySelector('.studylist').innerHTML = STUDY.length ? STUDY.map(s => `
+    <div class="card study">
+      <div class="head"><h3>${esc(s.topic)}</h3><span class="date">${esc(s.date)}</span></div>
+      <div class="pills">${s.needs_review?'<span class="pill warn">복습 필요</span>':'<span class="pill ok">복습 없음</span>'}${s.related_experience_ids.map(id=>`<span class="chip">${esc(id)}</span>`).join('')}</div>
+      <div class="quick"><button class="btn sm primary" onclick='openStudyDetail("${attrEsc(s.id)}")'>자세히 보기</button></div>
+    </div>`).join('') : '<div class="sub">아직 공부 기록이 없습니다. 챗봇에서 대화를 마치면 자동으로 쌓입니다.</div>';
+}
+async function openStudyDetail(id){
+  document.getElementById('fmKind').textContent = '공부 기록';
+  document.getElementById('fmName').textContent = id;
+  document.getElementById('fmBody').innerHTML = '<div class="sub">불러오는 중…</div>';
+  document.getElementById('filemodal').hidden = false;
+  try{
+    const res = await api(`/api/study/${encodeURIComponent(id)}`);
+    document.getElementById('fmName').textContent = res.meta.topic;
+    document.getElementById('fmBody').innerHTML = `<div class="filebody">${esc(res.summary)}</div>`;
+  }catch(err){
+    document.getElementById('fmBody').innerHTML = `<div class="filebody">불러오지 못했습니다: ${esc(err.message)}</div>`;
+  }
+}
+
+/* =================== INIT =================== */
+async function init(){
+  document.getElementById('chatlog').innerHTML = '<div class="msgrow bot"><div class="msg bot">불러오는 중…</div></div>';
+  try{
+    await loadExperiences();
+    await Promise.all([loadUser(), loadProfile(), loadProfileTiles(), loadJobs(), loadStudy()]);
+    renderUserView();
+  }catch(err){
+    toast('초기 데이터를 불러오지 못했습니다: ' + err.message.slice(0,150));
+  }
+  const greet = USER && USER.name ? USER.name+'님' : '반갑습니다';
+  document.getElementById('chatlog').innerHTML =
+    `<div class="msgrow bot"><div class="msg bot">안녕하세요, ${esc(greet)}. 위에서 폴더를 고르면 그 프로젝트만 놓고 얘기할 수 있어요. 아래 예시 질문을 눌러보세요.</div></div>`;
+}
+init();
 </script>

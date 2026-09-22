@@ -123,3 +123,20 @@ class SentenceCheck(BaseModel):
 
 class JudgeResult(BaseModel):
     checks: list[SentenceCheck]
+
+
+class CorrectionProposal(BaseModel):
+    is_correction: bool = Field(description="사용자 메시지가 저장된 기록을 정정하거나 새 사실을 추가하는 내용이면 true")
+    kind: Literal["correction", "new_fact"] = Field(
+        description="correction=이미 저장된 사실이 틀렸다고 정정. new_fact=기존에 없던 새로운 사실을 추가로 말함"
+    )
+    experience_id: str = Field(description="대상 경험 id. [관련 기록]에 나온 id의 '/' 앞부분만 쓴다. 모르면 빈 문자열")
+    field: Literal["my_role", "action", "decision", "result"] = Field(
+        description="대상 종류. is_correction이 false면 아무거나 골라도 된다"
+    )
+    original_text: str = Field(
+        description="kind=correction일 때만: [관련 기록]에서 글자 그대로 복사한, 정정 대상이 되는 문장. "
+        "kind=new_fact면 빈 문자열. 지어내지 않는다"
+    )
+    corrected_text: str = Field(description="사용자가 말한 정정/추가 내용을 한 문장으로 정리")
+    reason: str = Field(description="그렇게 판단한 이유를 한 문장으로")
