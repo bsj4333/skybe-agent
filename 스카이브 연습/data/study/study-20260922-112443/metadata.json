@@ -1,0 +1,19 @@
+{
+  "id": "study-20260922-112443",
+  "topic": "3D 프린터 프로젝트",
+  "date": "2026-09-22",
+  "keywords": [
+    "FastAPI",
+    "모델 학습",
+    "이상탐지",
+    "Autoencoder"
+  ],
+  "learned_count": 1,
+  "confusion_count": 0,
+  "related_experience_ids": [
+    "3d_printer_raw",
+    "heat_treatment_raw"
+  ],
+  "dropped_unverified": 0,
+  "needs_review": false
+}
