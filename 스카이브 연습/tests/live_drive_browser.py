@@ -45,7 +45,8 @@ def main() -> None:
                     page = browser.new_page(viewport={"width": 1440, "height": 900}, accept_downloads=True)
                     errors = []
                     page.on("pageerror", lambda error: errors.append(str(error)))
-                    page.goto("http://localhost:8010/", wait_until="domcontentloaded")
+                    page.goto(os.getenv("SKIVE_TEST_BASE_URL", "http://localhost:8010/"),
+                              wait_until="domcontentloaded")
                     page.locator("#email").fill(email)
                     page.locator("#password").fill(password)
                     started = time.monotonic()
@@ -58,6 +59,7 @@ def main() -> None:
                     timings["folder_appears_seconds"] = round(time.monotonic() - started, 2)
                     page.locator("#upload-title").get_by_text("업로드 완료").wait_for(timeout=90000)
                     timings["two_files_uploaded_seconds"] = round(time.monotonic() - started, 2)
+                    assert "경과" in page.locator("#upload-detail").inner_text()
                     page.locator("#folders .name").filter(has_text="브라우저 테스트").click()
                     page.get_by_text("2개 파일", exact=False).wait_for(timeout=30000)
                     for _ in range(30):
@@ -65,11 +67,15 @@ def main() -> None:
                             break
                         page.wait_for_timeout(1000)
                         page.locator("#refresh").click()
-                    page.locator("#files .file-row").filter(has_text="notes.txt").get_by_role("button", name="읽기").click()
+                    page.locator("#files .file-row").filter(has_text="notes.txt").get_by_role("button", name="원문/색인").click()
                     page.locator("#analysis-dialog").wait_for(state="visible")
                     text = page.locator("#analysis-text").inner_text()
                     assert "BOM" in text and "위치 색인" in text, text[:300]
-                    page.screenshot(path=str(Path(temp) / "drive.png"))
+                    page.locator("#close-analysis").click()
+                    page.locator("#folder-summary").click()
+                    page.locator("#summary-dialog").wait_for(state="visible")
+                    assert page.locator("#summary-title").inner_text().startswith("브라우저 테스트")
+                    page.screenshot(path=str(Path(tempfile.gettempdir()) / "skive-drive-browser.png"))
                     assert not errors, errors
                     print(json.dumps({"timings": timings, "preview_ok": True,
                                       "files_in_folder": page.locator("#files .file-row").count(),

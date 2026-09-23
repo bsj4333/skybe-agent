@@ -23,9 +23,9 @@
     .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin:10px 0 28px}
     .tile{border:1px solid #dde3e8;background:#f8fafd;border-radius:14px;padding:16px;display:flex;align-items:center;gap:12px;cursor:pointer;min-width:0}
     .tile:hover{background:#e8f0f4}.tile .name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-    .file-row{display:grid;grid-template-columns:36px minmax(140px,1fr) 110px 125px 135px 92px;gap:8px;align-items:center;padding:10px 12px;border-bottom:1px solid #e7e9ed;font-size:14px}
+    .file-row{display:grid;grid-template-columns:36px minmax(140px,1fr) 110px 125px 135px 138px;gap:8px;align-items:center;padding:10px 12px;border-bottom:1px solid #e7e9ed;font-size:14px}
     .file-row:hover{background:#f6f9fc}.file-row .name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
-    .actions{display:flex;gap:4px}.actions button{border:0;background:transparent;padding:4px;color:#477670}
+    .actions{display:flex;gap:4px;white-space:nowrap}.actions button{border:0;background:transparent;padding:4px;color:#477670}
     #auth{max-width:410px;margin:8vh auto;background:white;padding:32px;border-radius:20px;box-shadow:0 8px 35px #203a3a16}
     #auth h1{font-weight:700}#auth input{display:block;width:100%;padding:13px;margin:12px 0;border:1px solid #bbc5cb;border-radius:8px}
     #auth button{padding:11px 15px;border:0;border-radius:9px;background:#26736d;color:white;margin-right:8px}
@@ -35,6 +35,7 @@
     .upload-overall{margin:14px 0 5px}.upload-overall progress{flex:1;height:12px}.upload-overall b{font-size:15px;color:#26736d;min-width:42px;text-align:right}
     progress{accent-color:#26736d}#upload-detail{font-size:12px;color:#70757a;margin-bottom:12px}
     #progress-list{max-height:29vh;overflow-y:auto;overflow-x:hidden;border-top:1px solid #edf0f2}
+    #progress.compact #progress-list,#progress.compact #upload-detail{display:none}
     .progress-item{font-size:12px;padding:10px 0;border-bottom:1px solid #edf0f2;min-width:0}
     .progress-item .file-label{overflow-wrap:anywhere;line-height:1.4}.progress-item .file-state{color:#70757a;margin-top:3px}
     .progress-item progress{width:100%;height:7px;margin-top:5px}
@@ -53,19 +54,20 @@
   <div id="app" hidden>
     <header><div class="brand"><span>SKIVE</span> Drive</div><input id="search" class="search" placeholder="내 드라이브에서 검색"><div id="account" class="account"></div><button id="signout" class="small">로그아웃</button></header>
     <main><aside><button id="new-menu" class="primary">＋ 새로 만들기</button><button id="home" class="side active">내 드라이브</button><button id="refresh" class="side">새로고침</button></aside>
-    <section><h1 id="heading">내 드라이브</h1><div class="toolbar"><button id="new-folder">새 폴더</button><button id="upload-files">파일 업로드</button><button id="upload-folder">폴더 업로드</button><span class="muted" id="count"></span></div>
+    <section><h1 id="heading">내 드라이브</h1><div class="toolbar"><button id="new-folder">새 폴더</button><button id="upload-files">파일 업로드</button><button id="upload-folder">폴더 업로드</button><button id="folder-summary" hidden>이 폴더 경험 초안</button><span class="muted" id="count"></span></div>
     <div id="sync-status" hidden><span id="sync-label"></span><progress id="sync-progress" max="100" value="0"></progress></div>
     <div id="folders" class="grid"></div><div id="files"></div><p id="empty" class="muted" hidden>이 폴더는 비어 있습니다. 파일이나 폴더를 추가해 보세요.</p></section></main>
   </div>
   <input id="file-input" type="file" multiple hidden><input id="folder-input" type="file" webkitdirectory multiple hidden>
   <div id="message"></div>
   <div id="progress" role="status" aria-live="polite">
-    <div class="upload-head"><strong id="upload-title">폴더 준비 중</strong><span id="upload-count" class="muted"></span></div>
+    <div class="upload-head"><strong id="upload-title">폴더 준비 중</strong><span id="upload-count" class="muted"></span><button id="close-progress" class="small" type="button" aria-label="업로드 창 접기">−</button></div>
     <div class="upload-overall"><progress id="upload-overall" max="100" value="0"></progress><b id="upload-percent">0%</b></div>
     <div id="upload-detail">0 B / 0 B</div>
     <div id="progress-list"></div>
   </div>
   <dialog id="analysis-dialog" style="width:min(850px,95vw);max-height:85vh;border:0;border-radius:16px;box-shadow:0 10px 40px #0004"><button id="close-analysis" class="small" style="float:right">닫기</button><h2 id="analysis-title"></h2><pre id="analysis-text" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre></dialog>
+  <dialog id="summary-dialog" style="width:min(850px,95vw);max-height:85vh;border:0;border-radius:16px;box-shadow:0 10px 40px #0004"><button id="close-summary" class="small" style="float:right">닫기</button><h2 id="summary-title">폴더 경험 초안</h2><p class="muted">AI가 선택한 원문을 바탕으로 작성합니다. 문장별 출처와 본인 기여 확인 상태를 검토하세요.</p><button id="request-summary" class="small">초안 만들기 / 다시 만들기</button><pre id="summary-text" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre></dialog>
   <dialog id="move-dialog" style="width:min(480px,95vw);border:0;border-radius:16px;box-shadow:0 10px 40px #0004"><h2>이동할 폴더</h2><div id="move-path" class="muted"></div><div id="move-list"></div><div style="margin-top:20px;display:flex;gap:8px"><button id="move-select" class="small">여기로 이동</button><button id="move-cancel" class="small">취소</button></div></dialog>
   <script src="/assets/tus-4.3.1.min.js"></script>
   <script type="module">
@@ -106,6 +108,7 @@
     async function show(){
       const data=await api('/items'+(current?'?parent_id='+current:''));searchMode=false;
       render(data);el('heading').textContent=trail.length?trail.map((p,i)=>p.name).join('  ›  '):'내 드라이브';
+      el('folder-summary').hidden=!current;
     }
     async function refreshSummary(){
       if(!session)return;
@@ -137,7 +140,9 @@
           try{if(action==='r'){const n=prompt('새 이름',f.name);if(n)await api('/folders/'+f.id,{method:'PATCH',body:JSON.stringify({name:n})})}
           if(action==='m'){const id=await pickFolder();if(id!==undefined)await api('/folders/'+f.id+'/move',{method:'POST',body:JSON.stringify({parent_id:id})})}
           if(action==='d'&&confirm('폴더를 휴지통으로 이동할까요?'))await api('/folders/'+f.id,{method:'DELETE'});await show()}catch(err){fail(err)}});
-        tile.append(name,more);el('folders').append(tile);
+        const summary=button('경험 초안',e=>{e.stopPropagation();showSummary(f.id,f.name).catch(fail)});
+        summary.className='small';summary.title='폴더 자료로 출처가 붙은 경험 초안 만들기';
+        tile.append(name,summary,more);el('folders').append(tile);
       }
       for(const f of data.files){
         const row=document.createElement('div');row.className='file-row';
@@ -146,8 +151,8 @@
         name.onclick=()=>download(f).catch(fail);
         const size=document.createElement('span');size.className='muted';size.textContent=formatSize(f.size_bytes);
         const date=document.createElement('span');date.className='muted';date.textContent=new Date(f.updated_at).toLocaleDateString('ko-KR');
-        const state=document.createElement('span');state.className='muted';state.textContent=f.upload_status==='pending'?'업로드 대기':({queued:'분석 대기',processing:'분석 중',ready:'분석 완료',unsupported:'분석 미지원',failed:'분석 실패'}[f.analysis_status]||f.analysis_status);
-        const actions=document.createElement('span');actions.className='actions';actions.append(button('읽기',()=>showAnalysis(f).catch(fail)),button('↓',()=>download(f).catch(fail)),button('⋮',async()=>{
+        const state=document.createElement('span');state.className='muted';state.textContent=f.upload_status==='pending'?'업로드 대기':({queued:'텍스트 추출 대기',processing:'텍스트 추출 중',ready:'텍스트 추출 완료',unsupported:'추출 미지원',failed:'추출 실패'}[f.analysis_status]||f.analysis_status);
+        const actions=document.createElement('span');actions.className='actions';actions.append(button('원문/색인',()=>showAnalysis(f).catch(fail)),button('↓',()=>download(f).catch(fail)),button('⋮',async()=>{
           const action=prompt('파일: 이름 변경은 r, 이동은 m, 휴지통은 d');if(!action)return;
           try{if(action==='r'){const n=prompt('새 이름',f.name);if(n)await api('/files/'+f.id,{method:'PATCH',body:JSON.stringify({name:n})})}
           if(action==='m'){const id=await pickFolder();if(id!==undefined)await api('/files/'+f.id+'/move',{method:'POST',body:JSON.stringify({parent_id:id})})}
@@ -163,10 +168,19 @@
       const overview=result.analysis_markdown||result.analysis_error||'텍스트 추출 대기 중입니다.';
       el('analysis-text').textContent=overview+(preview?'\n\n---\n추출된 원문 미리보기 (최대 12구간)\n\n'+preview:'');
       el('analysis-dialog').showModal()}
+    let summaryFolder=null;
+    async function showSummary(id,name){summaryFolder={id,name};el('summary-title').textContent=name+' · 경험 초안';
+      const result=await api('/folders/'+id+'/summary');
+      el('summary-text').textContent=result.status==='missing'?'아직 경험 초안을 만들지 않았습니다.':
+        result.status==='queued'?'파일 추출이 끝나면 AI가 경험 초안을 작성합니다. 잠시 뒤 다시 열어 주세요.':
+        result.status==='processing'?'AI가 선택한 파일을 읽고 출처를 검사하는 중입니다.':
+        result.status==='failed'?'초안 생성 실패: '+result.error:
+        (result.stale?'파일이 바뀌어 이전 초안입니다. 다시 만들어 주세요.\n\n':'')+(result.markdown||'초안이 비어 있습니다.');
+      if(!el('summary-dialog').open)el('summary-dialog').showModal()}
     function fail(error){notice(error.message||String(error));console.error(error)}
     async function createFolder(name,parentId){return api('/folders',{method:'POST',body:JSON.stringify({name,parent_id:parentId})})}
     const pendingKey=(file,relative,parentId)=>`skive-upload:${session.user.id}:${parentId||'root'}:${relative}:${file.size}:${file.lastModified}`;
-    const uploadState={queue:[],running:0,totalFiles:0,done:0,failed:0,totalBytes:0,completedBytes:0,active:new Map(),nextId:0,paintQueued:false};
+    const uploadState={queue:[],running:0,totalFiles:0,done:0,failed:0,totalBytes:0,completedBytes:0,active:new Map(),nextId:0,paintQueued:false,summaryRoots:new Set(),startedAt:0};
     let refreshQueued=false;
     function scheduleFolderRefresh(){
       if(refreshQueued)return;refreshQueued=true;
@@ -180,7 +194,9 @@
         (state.totalFiles?Math.round(state.done/state.totalFiles*100):0);
       el('upload-overall').value=percent;el('upload-percent').textContent=percent+'%';
       el('upload-count').textContent=`${state.done}/${state.totalFiles}개 완료`;
-      el('upload-detail').textContent=`${formatSize(sent)} / ${formatSize(state.totalBytes)} · 전송 ${state.running}개 · 대기 ${state.queue.length}개${state.failed?' · 실패 '+state.failed+'개':''}`;
+      const elapsed=Math.max(1,Math.floor((Date.now()-state.startedAt)/1000));
+      const duration=`${Math.floor(elapsed/60)}:${String(elapsed%60).padStart(2,'0')}`;
+      el('upload-detail').textContent=`${formatSize(sent)} / ${formatSize(state.totalBytes)} · 경과 ${duration} · 평균 ${formatSize(Math.round(sent/elapsed))}/s · 전송 ${state.running}개 · 대기 ${state.queue.length}개${state.failed?' · 실패 '+state.failed+'개':''}`;
       el('upload-title').textContent=state.running||state.queue.length?'파일 업로드 중':state.failed?'일부 파일 업로드 실패':'업로드 완료';
     }
     function scheduleUploadPaint(){if(uploadState.paintQueued)return;uploadState.paintQueued=true;requestAnimationFrame(()=>{uploadState.paintQueued=false;paintUploads()})}
@@ -242,7 +258,11 @@
         const task=state.queue.shift();state.running++;
         runQueuedUpload(task).finally(()=>{
           state.running--;scheduleUploadPaint();pumpUploads();
-          if(!state.running&&!state.queue.length)notice(`${state.done}개 파일 업로드 완료${state.failed?` · ${state.failed}개 실패. 같은 폴더를 다시 선택해 재개하세요.`:''}`);
+          if(!state.running&&!state.queue.length){
+            notice(`${state.done}개 파일 업로드 완료${state.failed?` · ${state.failed}개 실패. 같은 폴더를 다시 선택해 재개하세요.`:''}`);
+            if(!state.failed)for(const id of state.summaryRoots)api('/folders/'+id+'/summary',{method:'POST'}).catch(fail);
+            state.summaryRoots.clear();
+          }
         });
       }
     }
@@ -251,15 +271,18 @@
       const base=current,state=uploadState;
       if(!state.running&&!state.queue.length){
         state.totalFiles=0;state.done=0;state.failed=0;state.totalBytes=0;state.completedBytes=0;
-        state.active.clear();clear(el('progress-list'));
+        state.active.clear();state.summaryRoots.clear();state.startedAt=Date.now();clear(el('progress-list'));
+        el('progress').classList.remove('compact');el('close-progress').textContent='−';
       }
       el('progress').style.display='block';
       el('upload-title').textContent=isFolder?'폴더 준비 중':'파일 준비 중';
       let folders={};
+      if(!isFolder&&base)state.summaryRoots.add(base);
       if(isFolder){
         const paths=[...new Set(files.map(file=>file.webkitRelativePath.split('/').slice(0,-1).join('/')).filter(Boolean))];
         try{
           folders=(await api('/folders/import-tree',{method:'POST',body:JSON.stringify({parent_id:base,paths})})).folders;
+          for(const path of paths){const root=path.split('/')[0];state.summaryRoots.add(folders[root])}
           await show(); // Parent folder appears before the first byte is uploaded.
         }catch(error){el('upload-title').textContent='폴더 준비 실패';throw error}
       }
@@ -311,7 +334,12 @@
     el('folder-input').onchange=e=>{uploadMany([...e.target.files],true).catch(fail);e.target.value=''};
     el('search').onkeydown=async e=>{if(e.key!=='Enter')return;const q=e.target.value.trim();if(!q){await show();return}try{const data=await api('/search?q='+encodeURIComponent(q));searchMode=true;render(data);el('heading').textContent='검색: '+q}catch(err){fail(err)}};
     el('close-analysis').onclick=()=>el('analysis-dialog').close();
+    el('close-summary').onclick=()=>el('summary-dialog').close();
+    el('close-progress').onclick=()=>{const panel=el('progress');if(!uploadState.running&&!uploadState.queue.length){panel.style.display='none';return}panel.classList.toggle('compact');el('close-progress').textContent=panel.classList.contains('compact')?'＋':'−'};
+    el('folder-summary').onclick=()=>showSummary(current,trail.at(-1)?.name||'폴더').catch(fail);
+    el('request-summary').onclick=async()=>{if(!summaryFolder)return;try{await api('/folders/'+summaryFolder.id+'/summary',{method:'POST'});await showSummary(summaryFolder.id,summaryFolder.name)}catch(err){fail(err)}};
     setInterval(async()=>{if(session&&!document.hidden){try{const pending=await refreshSummary();if(pending&&!searchMode)await show()}catch(error){console.error(error)}}},10000);
+    setInterval(()=>{if(uploadState.startedAt&&(uploadState.running||uploadState.queue.length))scheduleUploadPaint()},1000);
     boot();
   </script>
 </body>

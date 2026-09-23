@@ -170,7 +170,10 @@ def main():
         raise SystemExit("Worker needs SUPABASE_URL and server-only SUPABASE_SECRET_KEY in .env")
     while True:
         if not run_once(base_url, secret_key):
-            time.sleep(5)
+            from skive.drive_summary import run_summary_once
+
+            if not run_summary_once():
+                time.sleep(5)
 
 
 if __name__ == "__main__":

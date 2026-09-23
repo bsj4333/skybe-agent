@@ -4,9 +4,12 @@ from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field, field_validator
+from psycopg.rows import dict_row
 
 from skive.drive_auth import current_user_id, public_config
 from skive.drive_db import user_connection
+from skive.drive_summary import folder_files, signature
+from skive.db import get_connection
 
 router = APIRouter(prefix="/api/drive", tags=["drive"])
 
@@ -153,6 +156,45 @@ def folder_breadcrumbs(folder_id: UUID, user_id: UUID = Depends(current_user_id)
             "join path p on p.parent_id=f.id where f.trashed_at is null) "
             "select id,name from path order by depth desc", (folder_id,),
         ).fetchall()
+
+
+@router.get("/folders/{folder_id}/summary")
+def folder_summary(folder_id: UUID, user_id: UUID = Depends(current_user_id)):
+    with user_connection(user_id) as conn:
+        require_folder(conn, folder_id)
+        row = conn.execute(
+            "select status,source_signature,markdown,facts,files_considered,files_selected,error,updated_at "
+            "from skive.drive_folder_summaries where folder_id=%s", (folder_id,),
+        ).fetchone()
+        if not row:
+            return {"status": "missing"}
+        return {**row, "stale": row["status"] == "ready" and
+                row["source_signature"] != signature(folder_files(conn, user_id, folder_id))}
+
+
+@router.post("/folders/{folder_id}/summary")
+def request_folder_summary(folder_id: UUID, user_id: UUID = Depends(current_user_id)):
+    # Authentication is checked first; the privileged insert below is restricted
+    # to a folder whose owner matches the token, never a caller-supplied user id.
+    with user_connection(user_id) as conn:
+        require_folder(conn, folder_id)
+        files = folder_files(conn, user_id, folder_id)
+        if not files:
+            raise HTTPException(409, "이 폴더에는 요약할 파일이 없습니다")
+        current_signature = signature(files)
+    with get_connection() as conn:
+        conn.row_factory = dict_row
+        row = conn.execute(
+            "insert into skive.drive_folder_summaries (user_id,folder_id,status) "
+            "select user_id,id,'queued' from skive.drive_folders "
+            "where id=%s and user_id=%s and trashed_at is null "
+            "on conflict (folder_id) do update set "
+            "status=case when skive.drive_folder_summaries.status='ready' "
+            "and skive.drive_folder_summaries.source_signature=%s then 'ready' else 'queued' end, "
+            "error=null,updated_at=now() "
+            "returning status,folder_id,updated_at", (folder_id, user_id, current_signature),
+        ).fetchone()
+    return row_or_404(row, "Folder")
 
 
 @router.patch("/folders/{folder_id}")

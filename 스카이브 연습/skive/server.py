@@ -52,18 +52,27 @@ app.add_middleware(
 @app.middleware("http")
 async def protect_legacy_api(request: Request, call_next):
     """Never expose the old shared local data routes in multiuser mode."""
+    legacy_local = os.getenv("SKIVE_LEGACY_LOCAL_ONLY") == "1"
+    if legacy_local and request.client and request.client.host not in {"127.0.0.1", "::1"}:
+        return JSONResponse({"detail": "Legacy UI is local only"}, status_code=403)
+    if legacy_local:
+        origin = request.headers.get("origin")
+        referer = request.headers.get("referer")
+        allowed = {"http://127.0.0.1:8011", "http://localhost:8011"}
+        if (origin and origin not in allowed) or (referer and not any(referer.startswith(p + "/") for p in allowed)):
+            return JSONResponse({"detail": "Legacy UI only accepts its own origin"}, status_code=403)
     configured = os.getenv("SUPABASE_URL") and (
         os.getenv("SUPABASE_PUBLISHABLE_KEY") or os.getenv("SUPABASE_ANON_KEY")
     )
     path = request.url.path
-    if configured and path.startswith("/api/") and not path.startswith("/api/drive/"):
+    if configured and not legacy_local and path.startswith("/api/") and not path.startswith("/api/drive/"):
         return JSONResponse({"detail": "Legacy single-user API disabled in drive mode"}, status_code=410)
     return await call_next(request)
 
 
 @app.get("/")
 def index():
-    if os.getenv("SUPABASE_URL") and (os.getenv("SUPABASE_PUBLISHABLE_KEY") or os.getenv("SUPABASE_ANON_KEY")):
+    if os.getenv("SKIVE_LEGACY_LOCAL_ONLY") != "1" and os.getenv("SUPABASE_URL") and (os.getenv("SUPABASE_PUBLISHABLE_KEY") or os.getenv("SUPABASE_ANON_KEY")):
         return FileResponse(DRIVE_UI, headers={"Cache-Control": "no-store"})
     if not UI_MOCKUP.is_file():
         raise HTTPException(404, "UI mockup not found")
