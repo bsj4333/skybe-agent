@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -9,7 +10,20 @@ from skive.loaders import Chunk, load_folder
 from skive.models import UNKNOWN, Evidence, Experience, Fact
 from skive.verify import norm, quote_in_source
 
-MAX_CHARS = 60_000
+# 폴더 전체를 한 번의 LLM 호출로 분석하는 지금 방식의 상한. 60,000자(원래 값)는 초기
+# 샘플 데이터(경험 6개, 청크 17개) 기준으로 잡은 보수적인 값이었는데, 실사용자 폴더는
+# 쉽게 이걸 넘는다(실측, 2026-09-23).
+#
+# 320,000자는 추측이 아니라 실측 기반이다: 실사용자 폴더(캡스톤, 파일 365개 — CSV 76개·
+# 코드 17개·md 19개) 하나를 tiktoken(o200k_base)으로 재보니 295,492자가 정확히 100,897
+# 토큰이었다(문자당 약 2.93토큰). gpt-4o-mini 컨텍스트 128K 토큰 기준으로 이 폴더는
+# 시스템 프롬프트·출력 여유분까지 포함해도 안전하게 들어간다. **단, 이건 로더가 CSV를
+# 미리보기로 줄인(loaders.py CSV_PREVIEW_CHARS) *이후* 수치다** — 그 전에는 같은 폴더가
+# 7,948,547자였다. 즉 이 상한을 올린 것과 별개로, 애초에 "숫자 나열 원본 데이터를 통째로
+# LLM에 넣지 않는다"는 로더 쪽 수정이 실제 해결책이었다. 이 상한은 안전판일 뿐이고, 이걸
+# 넘으면 여전히 실패한다 — 진짜 임의로 큰 폴더를 처리하려면 청크를 나눠서 여러 번 분석하고
+# 합치는 것(map-reduce)이 필요한데 아직 미구현이다.
+MAX_CHARS = int(os.environ.get("SKIVE_ANALYZER_MAX_CHARS", "320000"))
 
 SYSTEM_PROMPT = f"""너는 대학생의 프로젝트·수업·활동 자료를 읽고 경험 기록(experience)을 만드는 분석가다.
 입력은 [C숫자] (파일, 위치) 헤더로 구분된 원문 조각들이다. 근거를 댈 때는 이 C숫자를 chunk_id로 쓴다.
@@ -24,7 +38,12 @@ SYSTEM_PROMPT = f"""너는 대학생의 프로젝트·수업·활동 자료를 �
 5. 모든 근거의 quote는 해당 chunk_id 조각에서 글자 그대로 복사한다. 요약하거나 표현을 바꾸지 않는다.
 6. 시행착오·의사결정은 회의록, 노트, 코드 주석 등 원문에 드러난 것만 쓴다.
 7. skills에는 원문에 등장한 기술·도구·라이브러리(코드의 import 포함)를 적는다.
-8. lessons는 원문에 '배운 점'·'소감'으로 명시된 내용만 쓴다. 없으면 '{UNKNOWN}'."""
+8. lessons는 원문에 '배운 점'·'소감'으로 명시된 내용만 쓴다. 없으면 '{UNKNOWN}'.
+9. resume_draft는 actions/decisions_and_trials/results에 이미 쓴 사실만 문장으로 다시 엮는다. 새 수치나
+   사실을 만들어내지 않는다. my_role이 '{UNKNOWN}'이면 주어를 '팀은'으로 쓴다.
+10. gaps_to_fill은 이 경험을 자소서·포트폴리오 소재로 쓸 때 아쉬운 부분을 구체적으로 적는다
+    (예: "정확한 참여 기간 불명", "최종 정확도 수치 없음"). open_questions와 달리 필수 확인 사항이
+    아니라 '있으면 더 강해지는 것'이다. 없으면 빈 리스트."""
 
 
 def _where(ev: Evidence, chunks: dict[str, Chunk]) -> str:
@@ -92,6 +111,27 @@ def _fact_lines(entries: list[dict]) -> list[str]:
     return [f"- ({e['owner']}) {e['text']} {e['tag']}" for e in entries]
 
 
+def _star_summary(problem: str, role: str, role_tags: str, actions: list[dict],
+                   decisions: list[dict], results: list[dict]) -> list[str]:
+    """이미 뽑아둔 사실을 S/T/A/R로 재배열만 한다 — 새 LLM 호출 없이 만드는 빠른 요약본.
+
+    사용자 피드백(2026-09-23): "정리본"이라고 부를 만한 요약이 experience.md 맨 위에
+    있어야 한다는 지적. 아래 상세 Action/Decision/Results 섹션이 원자료이고, 이건 그걸
+    한눈에 볼 수 있게 압축한 것 — 근거는 여전히 아래 상세 섹션의 태그에 있다."""
+    def top(entries: list[dict], n: int = 3) -> str:
+        picked = [f"{e['text']}" for e in entries[:n]]
+        return "; ".join(picked) if picked else f"{UNKNOWN}"
+
+    task = f"{role} {role_tags}".strip() if role != UNKNOWN else UNKNOWN
+    return [
+        "## STAR 요약",
+        f"- **S (상황)**: {problem or UNKNOWN}",
+        f"- **T (역할)**: {task}",
+        f"- **A (행동)**: {top(actions + decisions)}",
+        f"- **R (결과)**: {top(results)}",
+    ]
+
+
 def analyze_folder(root: Path, me: str, exp_id: str, grade: int) -> tuple[str, dict, dict]:
     chunks = {f"C{i}": c for i, c in enumerate(load_folder(root), start=1)}
     corpus = "\n\n".join(
@@ -135,6 +175,8 @@ def analyze_folder(root: Path, me: str, exp_id: str, grade: int) -> tuple[str, d
         f"- 기간: {exp.period}",
         f"- 소속/유형: {exp.organization}",
         "",
+        *_star_summary(exp.problem, role, role_tags, actions, decisions, results),
+        "",
         "## Problem",
         exp.problem,
         "",
@@ -156,9 +198,14 @@ def analyze_folder(root: Path, me: str, exp_id: str, grade: int) -> tuple[str, d
         "## Lessons",
         exp.lessons,
         "",
+        "## 자소서 표현 초안 (AI 해석 — 검토 필요)",
+        exp.resume_draft or UNKNOWN,
+        "",
         "## Evidence (원본 파일)",
         *[f"- {s}" for s in sources],
     ]
+    if exp.gaps_to_fill:
+        lines += ["", "## 채워야 할 것 (있으면 더 강해짐)", *[f"- {g}" for g in exp.gaps_to_fill]]
     if exp.open_questions:
         lines += ["", "## Open Questions (사용자 확인 필요)", *[f"- {q}" for q in exp.open_questions]]
 
@@ -176,6 +223,7 @@ def analyze_folder(root: Path, me: str, exp_id: str, grade: int) -> tuple[str, d
         "evidence_verified": stats["verified"],
         "my_role_verified": role_verified,
         "open_questions": exp.open_questions,
+        "gaps_to_fill": exp.gaps_to_fill,
     }
     facts = {
         "title": exp.title,
@@ -195,5 +243,7 @@ def analyze_folder(root: Path, me: str, exp_id: str, grade: int) -> tuple[str, d
         "results": results,
         "skills": exp.skills,
         "lessons": exp.lessons,
+        "resume_draft": exp.resume_draft,
+        "gaps_to_fill": exp.gaps_to_fill,
     }
     return "\n".join(lines) + "\n", meta, facts

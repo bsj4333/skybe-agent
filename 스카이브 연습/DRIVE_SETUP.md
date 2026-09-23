@@ -1,0 +1,68 @@
+# SKIVE Drive 설정과 현재 경계 (2026-09-23)
+
+> 2026-09-23 실측: `.env`의 URL·publishable·secret 키가 유효하고 `DATABASE_URL`도 같은 프로젝트다. 임시 Auth 계정 2개로 TUS 중단/재개, 사용자별 DB·Storage 격리, 워커 추출을 통과했다. 임시 계정과 파일은 테스트 후 정리했다. 브라우저 화면에서의 수동 업로드와 실제 사용자 자료 20~30개 검증은 아직 필요하다.
+
+> 2026-09-23 업로드 수정: 처음 브라우저 모듈이 Node용 TUS 빌드를 받아 사용자 업로드가 실패했다. 당시 사용자 계정에는 KT/화력발전소 폴더 계층 17개와 `pending` 파일 70개가 기록됐지만 Storage 원본은 0개였다. 브라우저용 TUS 번들을 앱에서 제공하고, 폴더 계층을 먼저 표시하며, 파일 2개씩 전송하는 전체 진행률 패널로 바꿨다. **같은 브라우저에서 두 폴더를 다시 선택하면 기존 폴더·대기 파일 기록을 재사용해 업로드한다.** 브라우저 실제 클릭 검증은 아직 남아 있다.
+
+## 현재 구현
+
+- `/drive`: Supabase 이메일 가입/로그인, 사용자별 폴더·파일 목록, 검색, 이름 변경, 이동, 휴지통 처리, 다운로드.
+- 브라우저에서 파일과 폴더를 선택하면 원래 폴더 계층을 한 번의 API 호출로 `skive.drive_folders`에 만들고 즉시 목록을 갱신한다. 파일마다 `skive.drive_files` 기록을 만든다.
+- 파일 바이트는 브라우저용 tus-js-client 번들에서 비공개 `skive-originals` 버킷으로 최대 2개씩 TUS 재개 업로드한다. 저장 경로는 `{auth_user_id}/{file_id}/original`이다. 재선택 시 브라우저의 미완료 파일 기록과 TUS 세션으로 재개한다. 오른쪽 아래에 전체 바이트 퍼센트와 파일별 상태가 표시된다.
+- 업로드 완료 확인은 실제 Storage 객체와 크기를 검사하고 DB 작업 큐에 넣는다.
+- 별도 워커는 원본을 받아 지원 파일의 텍스트를 추출해 파일/버전/위치 단위로 저장한다. 사용자에게 보이는 Markdown은 **추출 위치 색인**이며, 아직 AI가 사실을 요약·검증한 결과가 아니다.
+- 기존 `/api/*` 단일 사용자 API는 Supabase 설정이 있으면 410으로 막는다. 로그인 모드의 `/`는 새 드라이브를 보여준다. 기존 로컬 경험·챗봇·자소서 자료는 새 계정에 연결되지 않는다.
+
+## 키 준비
+
+Supabase Dashboard에서 프로젝트를 연다. 상단 **Connect**에서 Project URL과 publishable key를 복사하거나 **Settings → API Keys**에서 키를 확인한다. 없다면 publishable/secret 키를 생성한다. 프로젝트 루트, 즉 `스카이브 연습`의 한 단계 위 `.env`에 다음을 추가한다.
+
+```dotenv
+SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
+SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
+SUPABASE_SECRET_KEY=sb_secret_...
+```
+
+`SUPABASE_SECRET_KEY`는 분석 워커에만 필요하다. 브라우저·채팅·저장소에 노출하지 않는다. 오래된 프로젝트의 `anon`/`service_role` 키도 각각 `SUPABASE_ANON_KEY`/`SUPABASE_SERVICE_ROLE_KEY`로 읽을 수 있지만 새 키를 권장한다. `DATABASE_URL`도 같은 Supabase 프로젝트를 가리켜야 한다.
+
+## 실행
+
+프로젝트 폴더에서 각각 별도 터미널을 연다.
+
+```powershell
+uv run python -c "from skive.db import run_migrations; print(run_migrations())"
+uv run uvicorn skive.server:app --reload --port 8010
+uv run python -m skive.drive_worker
+```
+
+브라우저에서 `http://localhost:8010/` 접속. `.env`를 변경한 뒤에는 서버와 워커를 재시작한다. Supabase Auth의 이메일 확인 기능이 켜져 있으면 가입 후 메일 확인이 필요하다.
+
+## 검증 절차
+
+1. 서로 다른 두 이메일로 계정을 만든다. A에서 폴더와 파일을 올린다.
+2. A에서 업로드 완료와 텍스트 추출 상태를 보고, 파일 다운로드와 위치 색인을 확인한다.
+3. A에서 큰 파일 업로드 중 네트워크를 끊고 동일 파일을 다시 선택해 재개한다.
+4. B로 로그인해 A의 폴더/파일이 목록·검색에 나타나지 않는지 확인한다. A의 파일 ID를 이용한 API 직접 조회도 404여야 한다.
+5. 여러 하위 폴더와 20~30개 파일을 올리고 이름·경로·크기·상태·실패 파일을 대조한다.
+
+위 절차 중 임시 계정 2개를 사용한 API·Storage·재개 업로드·워커 추출은 통과했다. 운영 도구로 기존 계정에 1,000개 이상의 실제 파일을 올리고 DB·Storage 개수/크기 및 대표 원본 해시도 대조했다. 브라우저에서 폴더를 직접 선택하는 클릭 동선은 별도 검증이 남아 있다. 다른 컴퓨터의 친구는 `localhost`로 접속할 수 없으므로, 함께 사용하려면 서버 배포와 HTTPS 주소가 필요하다.
+
+## 로컬 폴더를 기존 계정으로 가져오기
+
+브라우저 업로드와 별개로, 개발 PC에서 큰 폴더를 시험할 때는 기존 Auth 계정을 지정해 아래 운영 도구를 실행할 수 있다. 서버 전용 `.env`가 있는 PC에서만 사용한다.
+
+```powershell
+uv run python -m scripts.import_local_drive 'C:\path\to\folder' --user-email 'your-account@example.com'
+```
+
+폴더와 파일 기록을 먼저 만들고, 원본은 Supabase Storage에 TUS로 전송한 뒤 실제 객체 크기를 확인해 분석 작업을 넣는다. 같은 명령을 다시 실행하면 같은 경로·이름·크기의 기록과 이미 저장된 객체를 재사용한다. 의존성 폴더(`.git`, `.venv`, `node_modules`, `__pycache__`)와 `.env` 파일은 제외한다. 기본 총량 한도는 1 GiB이고 `--extensions '.md,.py,.xlsx'`로 핵심 자료만 고를 수 있다. 기본 4개 파일을 병렬 전송하며 중단 뒤 재실행할 수 있지만, 터미널 프로세스가 종료된 파일의 TUS 세션 자체는 아직 이어받지 않는다.
+
+화면은 다른 클라이언트에서 올린 파일도 계정 전체 저장 완료 개수·바이트·퍼센트와 분석 진행률을 10초마다 갱신한다. 브라우저에서 직접 올릴 때는 별도 전송 패널에 파일별 진행률도 나온다. 파일의 **읽기**에서 위치 색인과 최대 12개 원문 구간을 확인할 수 있다. 이 내용은 아직 AI가 검증한 경험 요약이 아니다.
+
+## 알려진 한계와 다음 단계
+
+- 지원 추출: md/txt/py/ps1/json/jsonl/js/html/yaml/yml/csv/pdf/pptx/xlsx/docx. CSV는 원본의 모든 행을 읽어 행 수·열 구조·결측·숫자 통계·주요 지표 최대값의 원본 행 번호와 일부 샘플 행을 색인한다. 전체 원본 행은 Storage 파일에 남긴다. Excel은 시트·행·셀 위치와 수식/캐시 값을, Word는 문단·표 행 위치를 남긴다. 5 MiB를 넘는 XLSX는 느린 전체 셀 추출을 막기 위해 원본만 보관하고 `unsupported`로 표시한다. 스캔 PDF OCR, 이미지, 동영상도 아직 없다. 일반 추출 상한은 파일당 50 MiB다. API의 50 GiB 메타데이터 상한과 별개로 [Supabase 무료 플랜](https://supabase.com/pricing)은 Storage 1 GB·파일당 50 MB까지다. 프로젝트의 실제 요금제와 사용량을 확인해야 한다.
+- 업로드는 최대 2개 파일을 병렬 전송한다. 중단 파일 재선택은 지원하지만 브라우저 창이 닫힌 뒤 자동 일괄 재개, 폴더 업로드의 빈 폴더 보존, 서버 측 대량 작업 관리, 휴지통 복원과 Storage 정리, 충돌 해결은 다음 작업이다.
+- 추출 위치 색인은 `experience.md` 요약이나 검증된 개인 경험이 아니다. 다음 단계에서 파일 집합을 경험 단위로 묶고, 사실마다 원본 파일/구간/인용/주체/수치를 검증한 뒤 요약 Markdown과 DB 사실 레코드를 만든다. 자소서·챗봇은 그 검증 레코드만 조회하도록 새 사용자 스코프 저장소로 옮겨야 한다.
+- 서버는 현재 DB 관리자 연결을 매 요청마다 `authenticated` 역할과 사용자 JWT claim으로 낮춰 RLS를 적용한다. 임시 두 계정으로 API·Storage 교차 접근과 TUS 재개를 검증했다. 배포 전에는 실제 두 사용자 자료로 다시 검증하고 관리 DB 계정을 최소 권한 역할로 교체한다.
+- Google Drive 연동은 SKIVE 자체 드라이브의 업로드·권한·분석 파이프라인이 검증된 뒤 스냅샷 가져오기로 추가한다.

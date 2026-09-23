@@ -117,6 +117,24 @@ def _append_to_section(markdown: str, header: str, line: str) -> str:
     return section + f"\n{line}\n" + markdown[insert_at:]
 
 
+def _replace_in_section(markdown: str, header: str, old_text: str, new_text: str) -> str:
+    """`markdown.replace(old_text, ..., 1)`은 문서 전체에서 첫 번째로 걸리는 자리를 바꾼다.
+
+    My Role과 Lessons가 둘 다 검증 전엔 '확인 필요'로 시작하는데, 한쪽을 먼저 정정하면
+    그 줄에 "(기존: 확인 필요)" 감사 기록이 남는다. 이후 다른 쪽을 정정할 때 문서 전체에서
+    "확인 필요"를 찾으면 이 감사 기록 안의 문구가 먼저 걸려서, 엉뚱한 섹션 안에 엉뚱한
+    정정 내용이 끼어드는 게 실측으로 확인됐다. 그 섹션 범위 안에서만 찾고 바꾼다."""
+    idx = markdown.find(header)
+    if idx == -1:
+        raise ValueError(f"'{header}' 섹션을 찾지 못해 정정을 반영할 수 없음")
+    next_header = markdown.find("\n## ", idx + len(header))
+    end = next_header if next_header != -1 else len(markdown)
+    section = markdown[idx:end]
+    if old_text not in section:
+        raise ValueError(f"'{header}' 섹션에서 원본 문구를 찾지 못해 정정을 반영할 수 없음")
+    return markdown[:idx] + section.replace(old_text, new_text, 1) + markdown[end:]
+
+
 def apply_correction(proposal: CorrectionProposal) -> dict:
     """사용자가 확인한 정정/새 사실을 facts.json과 experience.md에 반영하고 이력을 남긴다."""
     meta = store.get_meta(proposal.experience_id)
@@ -136,8 +154,6 @@ def apply_correction(proposal: CorrectionProposal) -> dict:
 
     elif proposal.field == "my_role":
         old_text = facts["my_role"]
-        if old_text not in markdown:
-            raise ValueError("원본 문구를 experience.md에서 찾지 못해 정정을 반영할 수 없음")
         # 사용자가 역할을 고쳤다는 것은 원문이 뒷받침하던 역할이 더는 유효하지 않다는 뜻이다.
         # 문서 검증 상태를 물려주지 않는다 (SCHEMA.md §2.4).
         facts["my_role"] = proposal.corrected_text
@@ -145,8 +161,21 @@ def apply_correction(proposal: CorrectionProposal) -> dict:
         facts["my_role_provenance"] = facts_v2.USER_STATEMENT
         facts["my_role_evidence_status"] = facts_v2.NEEDS_REVIEW
         facts["my_role_corrected_from"] = old_text
-        markdown = markdown.replace(
-            old_text, f"{proposal.corrected_text} [본인 진술, 원문 근거 없음] (기존: {old_text})", 1
+        markdown = _replace_in_section(
+            markdown, "## My Role", old_text,
+            f"{proposal.corrected_text} [본인 진술, 원문 근거 없음] (기존: {old_text})",
+        )
+
+    elif proposal.field == "lessons":
+        # my_role과 같은 패턴: [배운 점]에 원문 근거가 없으면 "본인 진술"로 명시해서 넣는다.
+        # (0-9, 업로드 직후 인터뷰) 원본에 "느낀 점"이 명시된 경우가 드물어서, 사용자가 직접
+        # 답한 성장·소감을 정식 경로로 기록할 곳이 필요했다.
+        old_text = facts.get("lessons", UNKNOWN)
+        facts["lessons"] = proposal.corrected_text
+        facts["lessons_provenance"] = facts_v2.USER_STATEMENT
+        markdown = _replace_in_section(
+            markdown, "## Lessons", old_text,
+            f"{proposal.corrected_text} [본인 진술, 원문 근거 없음] (기존: {old_text})",
         )
 
     else:

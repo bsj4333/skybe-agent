@@ -1,16 +1,34 @@
+import sqlite3
 from datetime import datetime
 from pathlib import Path
 
 from langchain_core.messages import SystemMessage
 from langchain_core.tools import tool
+from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.graph import END, START, MessagesState, StateGraph
 from langgraph.prebuilt import ToolNode
 
 from skive import store
-from skive.agent import get_evidence, get_experience, get_profile, list_experiences
+from skive.agent import get_profile
+from skive.context import RequestContext, ScopeError, guard_experience_id, new_context
 from skive.llm import get_llm
 from skive.recall import format_recall, recall
 from skive.study import get_study, search_study, summarize_session
+
+# 서버 세션용 대화 저장소 (P0-3). 예전엔 브라우저 변수 chatHistory에만 대화가 있어서
+# 새로고침하면 사라지고, 서버는 매 요청마다 클라이언트가 보낸 history를 그대로 믿었다.
+# LangGraph checkpointer를 붙이면 thread_id(=세션 id) 하나로 서버가 대화를 들고 있는다.
+# MemorySaver(인메모리)는 서버 재시작하면 날아가므로 개발 시연 외엔 안 쓴다 — 디스크 파일로 둔다.
+_CHECKPOINT_PATH = store.DATA / "sessions.sqlite3"
+_checkpoint_conn = sqlite3.connect(str(_CHECKPOINT_PATH), check_same_thread=False)
+CHECKPOINTER = SqliteSaver(_checkpoint_conn)
+
+# get_profile/search_study/get_study는 그대로 재사용한다 — 여기서 다루는 스코프는
+# "이 경험 폴더 안"이고, 이 셋은 애초에 특정 experience_id 하나를 읽는 도구가 아니라
+# 사용자 전체(프로필)나 공부 기록(여러 경험을 넘나드는 주제)을 다룬다. search_study가
+# 반환하는 related_experience_ids로 다른 경험의 존재를 알 수는 있다는 점은 남은 한계로
+# 남겨둔다(PROJECT_STATUS.md 참고) — get_experience/get_evidence처럼 원문 내용 자체가
+# 새는 것과는 심각도가 다르다.
 
 MIN_USER_TURNS = 2
 
@@ -24,15 +42,55 @@ CHAT_PROMPT = """너는 SKIVE 챗봇이다. 사용자의 대학생활 기억(프
    save_note로 그 경험의 '메모'로만 저장한다. list_notes/get_note로 이전에 저장한 메모를 다시 볼 수 있다."""
 
 
-def _build_tools(scope_id: str | None):
-    def _resolve(experience_id: str) -> str:
-        return scope_id or experience_id
+def _build_tools(ctx: RequestContext):
+    def _resolve_or_reject(experience_id: str) -> tuple[str | None, str | None]:
+        """스코프를 검사하고 (경험 id, None) 또는 (None, 사용자에게 보여줄 거부 메시지)를
+        돌려준다. 예외를 그대로 올려 LangGraph 도구 노드가 스택트레이스를 모델에
+        보여주게 하지 않는다(P0-6 원칙: 원본 예외 문자열을 그대로 노출하지 않음)."""
+        try:
+            return guard_experience_id(ctx, experience_id), None
+        except ScopeError as e:
+            return None, str(e)
+
+    @tool
+    def get_experience(experience_id: str) -> str:
+        """경험 id로 experience.md 전체 내용을 반환한다."""
+        exp_id, err = _resolve_or_reject(experience_id)
+        if err:
+            return err
+        return store.get_markdown(exp_id) or f"존재하지 않는 id: {exp_id}"
+
+    @tool
+    def get_evidence(experience_id: str, source: str) -> str:
+        """경험의 원본 파일 하나의 텍스트를 반환한다. source는 experience.md의 Evidence 목록에 있는 파일 경로."""
+        exp_id, err = _resolve_or_reject(experience_id)
+        if err:
+            return err
+        return store.get_source_text(exp_id, source) or f"존재하지 않는 id 또는 source: {exp_id}, {source}"
+
+    @tool
+    def list_experiences() -> str:
+        """저장된 경험의 id, 제목, 학년, 유형, 기간, 중요도 등급, 한 줄 요약, 기술 목록을 반환한다.
+        대화 범위가 좁혀져 있으면 그 경험 하나만 보여준다 — 다른 경험 id를 노출하면
+        다음 조회에서 스코프를 우회하는 통로가 되기 때문이다."""
+        metas = store.list_meta()
+        if ctx.active_scope_id is not None:
+            metas = [m for m in metas if m["id"] == ctx.active_scope_id]
+        lines = [
+            f"- id={m['id']} | {m['title']} | {m['grade']}학년 | {m['kind']} | {m['period']} | "
+            f"중요도 {m['importance']['tier']} | 역할검증={'예' if m['my_role_verified'] else '아니오'} | "
+            f"{m['summary']} | skills: {', '.join(m['skills'])}"
+            for m in metas
+        ]
+        return "\n".join(lines) or "저장된 경험이 없음"
 
     @tool
     def save_note(filename: str, content: str, experience_id: str = "") -> str:
         """경험 폴더에 메모 파일을 새로 만들거나 덮어쓴다. 원본 증거 파일은 건드리지 않는다.
         대화 범위가 특정 경험으로 좁혀져 있으면 그 경험에 저장되고, experience_id는 무시된다."""
-        exp_id = _resolve(experience_id)
+        exp_id, err = _resolve_or_reject(experience_id)
+        if err:
+            return err
         if not exp_id:
             return "어느 경험에 저장할지 알 수 없음 — experience_id를 지정해야 함"
         if store.get_meta(exp_id) is None:
@@ -43,7 +101,9 @@ def _build_tools(scope_id: str | None):
     @tool
     def list_notes(experience_id: str = "") -> str:
         """경험 폴더에 저장된 메모 파일 목록을 반환한다."""
-        exp_id = _resolve(experience_id)
+        exp_id, err = _resolve_or_reject(experience_id)
+        if err:
+            return err
         if not exp_id:
             return "experience_id가 필요함"
         names = store.list_notes(exp_id)
@@ -52,7 +112,9 @@ def _build_tools(scope_id: str | None):
     @tool
     def get_note(filename: str, experience_id: str = "") -> str:
         """경험 폴더의 메모 파일 하나를 읽는다."""
-        exp_id = _resolve(experience_id)
+        exp_id, err = _resolve_or_reject(experience_id)
+        if err:
+            return err
         if not exp_id:
             return "experience_id가 필요함"
         text = store.get_note(exp_id, filename)
@@ -71,15 +133,16 @@ def _build_tools(scope_id: str | None):
     ]
 
 
-def build_chat_graph(scope_id: str | None = None):
-    tools = _build_tools(scope_id)
+def build_chat_graph(scope_id: str | None = None, ctx: RequestContext | None = None, *, persistent: bool = False):
+    ctx = ctx or new_context(active_scope_id=scope_id)
+    tools = _build_tools(ctx)
     llm = get_llm().bind_tools(tools)
 
     def agent_node(state: MessagesState) -> dict:
         system = [SystemMessage(CHAT_PROMPT)]
-        if scope_id is not None:
-            meta = store.get_meta(scope_id)
-            title = meta["title"] if meta else scope_id
+        if ctx.active_scope_id is not None:
+            meta = store.get_meta(ctx.active_scope_id)
+            title = meta["title"] if meta else ctx.active_scope_id
             system.append(
                 SystemMessage(
                     f"[대화 범위 제한] 사용자가 '{title}' 경험 폴더 안에서 대화하기를 선택했다. "
@@ -88,7 +151,7 @@ def build_chat_graph(scope_id: str | None = None):
                 )
             )
         last_user = next((m.content for m in reversed(state["messages"]) if m.type == "human"), "")
-        hits = recall(last_user, scope_id=scope_id)
+        hits = recall(last_user, scope_id=ctx.active_scope_id)
         if hits:
             system.append(
                 SystemMessage(
@@ -108,7 +171,7 @@ def build_chat_graph(scope_id: str | None = None):
     builder.add_edge(START, "agent")
     builder.add_conditional_edges("agent", route, {"tools": "tools", END: END})
     builder.add_edge("tools", "agent")
-    return builder.compile()
+    return builder.compile(checkpointer=CHECKPOINTER if persistent else None)
 
 
 def _transcript(messages: list) -> str:
@@ -124,6 +187,24 @@ def _transcript(messages: list) -> str:
 def ask_once(graph, messages: list, text: str) -> tuple[list, str]:
     result = graph.invoke({"messages": messages + [("user", text)]}, config={"recursion_limit": 20})
     return result["messages"], result["messages"][-1].content
+
+
+def ask_in_session(ctx: RequestContext, text: str) -> tuple[list, str]:
+    """서버 세션용. 이전 대화는 checkpointer가 `ctx.session_id`로 이미 갖고 있으므로,
+    클라이언트가 history를 다시 보낼 필요 없이 새 메시지 하나만 넘긴다.
+    `MessagesState`는 add_messages 리듀서라 이 한 줄이 기존 대화에 append된다."""
+    graph = build_chat_graph(ctx=ctx, persistent=True)
+    config = {"recursion_limit": 20, "configurable": {"thread_id": ctx.session_id}}
+    result = graph.invoke({"messages": [("user", text)]}, config=config)
+    return result["messages"], result["messages"][-1].content
+
+
+def get_session_messages(session_id: str) -> list:
+    """`/api/chat/end`가 클라이언트 말을 믿지 않고 서버가 실제로 기록한 대화를 읽는 곳.
+    세션이 없으면(한 번도 대화 안 함) 빈 리스트."""
+    graph = build_chat_graph(persistent=True)
+    snapshot = graph.get_state({"configurable": {"thread_id": session_id}})
+    return snapshot.values.get("messages", []) if snapshot else []
 
 
 def run_chat(script: Path | None) -> dict | None:

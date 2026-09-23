@@ -16,11 +16,19 @@ load_dotenv()
 MIGRATIONS_DIR = Path(__file__).resolve().parent.parent / "migrations"
 
 
+# 기본 connect timeout이 없으면 Supabase pooler가 IP 여러 개(같은 호스트명 뒤에 여러 개
+# 뜬다)를 하나씩 순서대로 시도하다가 연결이 끊길 때마다 OS 기본 TCP 타임아웃(보통 1분+)을
+# 다 기다린다 — 실측(2026-09-23): 폴더 업로드 요청 하나가 DB 장애 때문에 90초 넘게
+# 응답이 없었다. 타임아웃을 짧게 주면 "느리게 실패"가 아니라 "빠르게 실패"해서, 위쪽
+# 호출부(`_finish_ingest`)가 훨씬 빨리 "검색 인덱스만 나중에 동기화" 상태로 넘어갈 수 있다.
+CONNECT_TIMEOUT_SECONDS = 5
+
+
 def get_connection() -> psycopg.Connection:
     url = os.environ.get("DATABASE_URL")
     if not url:
         raise RuntimeError(".env에 DATABASE_URL이 없음 (Supabase 프로젝트의 connection string)")
-    return psycopg.connect(url)
+    return psycopg.connect(url, connect_timeout=CONNECT_TIMEOUT_SECONDS)
 
 
 def run_migrations() -> list[str]:

@@ -25,13 +25,32 @@
       "tag": "[근거: 최종보고서.md @ L1-31]"
     },
     {
-      "text": "FastAPI 기반 실시간 추론 서버에 모델을 탑재하였다.",
+      "fact_id": "1ebd894e-1b72-46c4-b3bd-3c268d66b00f",
+      "version": 2,
+      "supersedes_version": 1,
+      "text": "FastAPI 서버는 팀원이 만들었다.",
       "owner": "팀",
-      "verified": true,
-      "sources": [
-        "최종보고서.md @ L1-31"
+      "provenance_type": "user_statement",
+      "evidence_status": "needs_review",
+      "lifecycle": "active",
+      "review_state": "accepted",
+      "evidence": [],
+      "prior_evidence": [
+        {
+          "source": "최종보고서.md",
+          "location": "L1-31",
+          "quote": null,
+          "quote_matched": true,
+          "supports_claim": "unknown",
+          "owner_match": "unknown"
+        }
       ],
-      "tag": "[근거: 최종보고서.md @ L1-31]"
+      "prior_text": "FastAPI 기반 실시간 추론 서버에 모델을 탑재하였다.",
+      "correction_reason": "사용자가 FastAPI 서버를 자신이 만든 것이 아니라 팀원이 만든 것이라고 수정함.",
+      "recorded_at": "2026-09-23T10:16:37.701948",
+      "verified": false,
+      "sources": [],
+      "tag": "[본인 진술, 원문 근거 없음]"
     }
   ],
   "decisions": [
@@ -81,5 +100,20 @@
     "torch",
     "FastAPI"
   ],
-  "lessons": "확인 필요"
+  "lessons": "확인 필요",
+  "superseded": [
+    {
+      "text": "FastAPI 기반 실시간 추론 서버에 모델을 탑재하였다.",
+      "owner": "팀",
+      "verified": true,
+      "sources": [
+        "최종보고서.md @ L1-31"
+      ],
+      "tag": "[근거: 최종보고서.md @ L1-31]",
+      "fact_id": "1ebd894e-1b72-46c4-b3bd-3c268d66b00f",
+      "version": 1,
+      "lifecycle": "superseded",
+      "superseded_at": "2026-09-23T10:16:37.701948"
+    }
+  ]
 }

@@ -108,7 +108,11 @@ main{flex:1;min-width:0;padding:26px 34px 60px}
 .frow .ficon{font-size:17px;width:22px;text-align:center;flex:none}
 .frow .fname{flex:1;font-size:13.5px}
 .frow .fdate{font-size:11.5px;color:var(--sub);font-family:var(--mono);width:96px;text-align:right}
+.frow .fdownload{flex:none;color:var(--sub);text-decoration:none;font-size:15px;padding:2px 6px;border-radius:6px}
+.frow .fdownload:hover{color:var(--accent);background:var(--accent-soft)}
 .dactions{display:flex;gap:8px;margin-bottom:14px}
+.descpanel{border:1px solid var(--line);border-radius:9px;padding:12px 14px;margin-bottom:14px;background:var(--surface-2)}
+.descpanel textarea{width:100%;min-height:70px;border:1px solid var(--line);border-radius:9px;padding:8px 10px;font-family:inherit;font-size:13px;background:var(--bg);color:var(--ink);resize:vertical}
 
 /* ---- generic ---- */
 .tabs{display:flex;gap:6px;margin-bottom:16px;border-bottom:1px solid var(--line)}
@@ -214,6 +218,24 @@ details.dbg summary{cursor:pointer}
 .progitem .ico{width:18px;height:18px;flex:none;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;background:var(--muted-bg);color:var(--sub)}
 .progitem.done .ico{background:var(--ok-bg);color:var(--ok)}
 .progitem.active .ico{background:var(--accent-soft);color:var(--accent)}
+.progitem.failed .ico{background:var(--bad-bg);color:var(--bad)}
+.dropzone{border:1.5px dashed var(--line);border-radius:11px;padding:22px 16px;text-align:center;color:var(--sub);font-size:13px;cursor:pointer;transition:border-color .15s,background .15s}
+.dropzone:hover,.dropzone.drag{border-color:var(--accent);background:var(--accent-soft)}
+.dropzone b{color:var(--ink-2);font-weight:600}
+.queuelist{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.queueitem{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:12.5px}
+.queueitem .qname{flex:1;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.queueitem .qcount{color:var(--sub);flex:none}
+.queueitem select{font-size:12px;padding:3px 5px;border-radius:6px;border:1px solid var(--line);background:var(--surface)}
+.queueitem .qremove{flex:none;border:none;background:none;color:var(--sub);cursor:pointer;font-size:15px;line-height:1;padding:2px 4px}
+.queueitem .qremove:hover{color:var(--bad)}
+.orsep{display:flex;align-items:center;gap:10px;margin:16px 0;color:var(--sub);font-size:11.5px}
+.orsep::before,.orsep::after{content:'';flex:1;height:1px;background:var(--line)}
+.intakeform{margin-top:18px;border-top:1px solid var(--line);padding-top:14px}
+.intakeform h4{font-size:13.5px;margin:0 0 4px}
+.intakeq{margin-top:10px}
+.intakeq label{display:block;font-size:12.5px;color:var(--ink-2);margin-bottom:4px}
+.intakeq textarea{width:100%;min-height:44px;border:1px solid var(--line);border-radius:9px;padding:8px 10px;font-family:inherit;font-size:13px;background:var(--bg);color:var(--ink);resize:vertical}
 .quick{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
 .factlist{display:flex;flex-direction:column;gap:9px;margin:14px 0}
 .fact{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--line);border-radius:9px;font-size:13px}
@@ -346,7 +368,11 @@ details.dbg summary{cursor:pointer}
           </div>
           <div class="scopenote" id="scopenote"></div>
           <div class="chatlog" id="chatlog"></div>
-          <div class="composer"><input id="chatinput" type="text" placeholder="예: 3D 프린터에서 FastAPI는 사실 내가 안 만들었어"><button id="chatsend">보내기</button></div>
+          <div class="composer">
+            <input id="chatinput" type="text" placeholder="예: 3D 프린터에서 FastAPI는 사실 내가 안 만들었어">
+            <button id="chatsend">보내기</button>
+            <button id="chatend" class="btn sm" title="지금까지 대화에서 배운 것·헷갈린 것을 공부 기록으로 저장하고 새 대화를 시작해요">대화 종료</button>
+          </div>
         </div>
         <div class="card suggest">
           <h3>예시 질문</h3>
@@ -375,21 +401,48 @@ details.dbg summary{cursor:pointer}
     </div>
     <div class="mbody">
       <div id="wstep1">
-        <p style="font-size:13px;color:var(--ink-2);margin-top:0">이 컴퓨터에 있는 폴더의 절대 경로를 붙여넣으세요. 파일을 옮기거나 업로드하지 않고, 있는 그대로 읽습니다. (네이티브 폴더 선택 창은 아직 없어서 경로를 직접 입력해야 해요)</p>
-        <div class="formrow" style="grid-template-columns:70px 1fr"><label>폴더 경로</label><input id="wfolder" placeholder="예: C:\Users\me\Documents\3D프린터_PHM"></div>
+        <p style="font-size:13px;color:var(--ink-2);margin-top:0">폴더를 끌어다 놓거나 찾아보기로 선택하세요. 여러 폴더를 한 번에 끌어다 놓을 수 있고, 폴더마다 경험 하나로 분석됩니다. 파일은 서버로 업로드되고, 원본은 그대로 보존돼요.</p>
+        <div class="dropzone" id="wdropzone" tabindex="0" role="button">
+          📁 <b>폴더나 zip 파일을 여기로 끌어다 놓으세요</b> (여러 개 가능)<br>
+          또는
+          <button type="button" class="btn sm" id="wbrowse" style="margin-top:6px">폴더 찾아보기</button>
+          <button type="button" class="btn sm" id="wbrowsezip" style="margin-top:6px">압축파일(zip) 선택</button>
+          <span style="display:block;margin-top:4px;font-size:11.5px">찾아보기는 한 번에 폴더 1개만 선택돼요 — 여러 개는 끌어다 놓거나 여러 번 눌러서 추가하세요</span>
+        </div>
+        <input type="file" id="wfileinput" webkitdirectory directory multiple hidden>
+        <input type="file" id="wzipinput" accept=".zip" hidden>
+        <div class="queuelist" id="wqueue"></div>
+        <div class="orsep">또는</div>
+        <div class="formrow" style="grid-template-columns:70px 1fr"><label>폴더 경로</label><input id="wfolder" placeholder="서버 로컬 경로 직접 입력 (개발용) 예: C:\Users\me\Documents\3D프린터_PHM"></div>
         <div class="formrow" style="grid-template-columns:70px 1fr"><label>학년</label>
           <select id="wgrade"><option value="1">1학년</option><option value="2">2학년</option><option value="3" selected>3학년</option><option value="4">4학년</option></select>
         </div>
       </div>
       <div id="wstep2" hidden>
-        <p style="font-size:13px;color:var(--ink-2);margin-top:0">폴더 안 파일을 읽고, 사실을 추출하고, 근거 인용을 원문과 대조해서 검증하고 있어요. 파일 개수·크기에 따라 시간이 좀 걸릴 수 있어요.</p>
-        <div class="proglist"><div class="progitem active"><span class="ico">…</span>분석 중…</div></div>
+        <p style="font-size:13px;color:var(--ink-2);margin-top:0">폴더 안 파일을 읽고, 사실을 추출하고, 근거 인용을 원문과 대조해서 검증하고 있어요. 폴더·파일 개수에 따라 시간이 좀 걸릴 수 있어요.</p>
+        <div class="proglist" id="wproglist"></div>
       </div>
       <div id="wstep3" hidden>
-        <h3 style="font-size:15px;margin-bottom:4px" id="w3title"></h3>
-        <div class="sub" style="margin-bottom:12px" id="w3sub"></div>
-        <div class="factlist" id="w3facts"></div>
-        <div id="w3questions"></div>
+        <!-- 폴더 1개만 처리했으면 상세 결과, 여러 개면 목록으로 보여준다 -->
+        <div id="w3single" hidden>
+          <h3 style="font-size:15px;margin-bottom:4px" id="w3title"></h3>
+          <div class="sub" style="margin-bottom:12px" id="w3sub"></div>
+          <div class="factlist" id="w3facts"></div>
+          <div id="w3questions"></div>
+          <div class="intakeform" id="w3intake">
+            <h4>몇 가지만 더 알려주세요</h4>
+            <div class="sub" style="margin-bottom:2px">자료에 안 적혀 있어도 괜찮아요 — 직접 답한 내용은 "본인 진술"로 표시돼서 저장되고, 자소서 쓸 때 쓸 수 있어요.</div>
+            <div id="intakeQs"></div>
+            <div class="row" style="margin-top:12px;gap:8px">
+              <button class="btn sm primary" id="intakeSubmit">답변 저장</button>
+              <button class="btn sm" id="intakeSkip">나중에 할게요</button>
+            </div>
+          </div>
+        </div>
+        <div id="w3multi" hidden>
+          <p style="font-size:13px;color:var(--ink-2);margin-top:0" id="w3multisummary"></p>
+          <div class="proglist" id="w3multilist"></div>
+        </div>
       </div>
     </div>
     <div class="mfoot" id="wfoot">
@@ -521,8 +574,31 @@ function renderDrive(){
   const id = drivePath[1]; const e = EXPERIENCES.find(x=>x.id===id);
   if(!e){ drivePath = []; renderDrive(); return; }
   let rows = `<div class="frow" onclick='openExperienceSummary("${attrEsc(id)}")'><span class="ficon">📝</span><span class="fname">experience.md <span class="pill accent" style="margin-left:4px">AI 요약</span></span><span class="fdate">근거 ${e.evidence_verified}/${e.evidence_total}</span></div>`;
-  e.sources.forEach(s => { rows += `<div class="frow" onclick='openSourceFile("${attrEsc(id)}","${attrEsc(s)}")'><span class="ficon">📄</span><span class="fname">${esc(s)}</span><span class="fdate">원본</span></div>`; });
-  area.innerHTML = `<div class="dactions"><button class="btn sm primary" onclick='goChatScoped("${attrEsc(id)}")'>💬 이 폴더로 챗봇에서 대화하기</button></div><div class="flist">${rows}</div>`;
+  e.sources.forEach(s => { rows += `<div class="frow" onclick='openSourceFile("${attrEsc(id)}","${attrEsc(s)}")'><span class="ficon">📄</span><span class="fname">${esc(s)}</span><a class="fdownload" href="/api/experiences/${encodeURIComponent(id)}/download-source/${encodeURIComponent(s)}" onclick="event.stopPropagation()" title="원본 그대로 다운로드">⬇</a><span class="fdate">원본</span></div>`; });
+  area.innerHTML = `
+    <div class="dactions">
+      <button class="btn sm primary" onclick='goChatScoped("${attrEsc(id)}")'>💬 이 폴더로 챗봇에서 대화하기</button>
+      <button class="btn sm" onclick='toggleDescPanel("${attrEsc(id)}")'>⚙ 설명</button>
+    </div>
+    <div class="descpanel" id="descpanel" hidden>
+      <div class="sub" style="margin-bottom:6px">이 프로젝트가 뭔지 자유롭게 적어두세요 — 자소서 쓸 때 참고 자료로 같이 쓰여요. 언제든 다시 와서 고칠 수 있어요.</div>
+      <textarea id="descInput" placeholder="예: 4학년 종합설계, 화력발전소 센서 이상탐지 프로젝트. 팀 4명, 나는 팀장이자 데이터 전처리·모델링 담당.">${esc(e.description || '')}</textarea>
+      <div class="row" style="margin-top:8px;gap:8px"><button class="btn sm primary" onclick='saveDescPanel("${attrEsc(id)}")'>저장</button></div>
+    </div>
+    <div class="flist">${rows}</div>`;
+}
+function toggleDescPanel(id){
+  const panel = document.getElementById('descpanel');
+  panel.hidden = !panel.hidden;
+}
+async function saveDescPanel(id){
+  const text = document.getElementById('descInput').value;
+  try{
+    await apiPut(`/api/experiences/${encodeURIComponent(id)}/description`, {description: text});
+    const e = EXPERIENCES.find(x=>x.id===id);
+    if(e) e.description = text;
+    toast('설명 저장했어요');
+  }catch(err){ toast('저장 실패: ' + err.message.slice(0,150)); }
 }
 function factRows(facts){
   const rows = [];
@@ -542,6 +618,23 @@ function factRows(facts){
   }
   return rows.join('') || '<div class="sub">기록된 사실이 없습니다.</div>';
 }
+function extraSummarySections(facts){
+  const blocks = [];
+  if(facts.my_role){
+    blocks.push(`<div class="sub" style="margin-top:10px">본인 역할</div><div class="fact"><div class="txt">${esc(facts.my_role)}</div></div>`);
+  }
+  if(facts.lessons && !String(facts.lessons).startsWith('확인 필요')){
+    blocks.push(`<div class="sub" style="margin-top:10px">배운 점</div><div class="fact"><div class="txt">${esc(facts.lessons)}</div></div>`);
+  }
+  if(facts.resume_draft){
+    blocks.push(`<div class="sub" style="margin-top:10px">자소서 표현 초안 <span class="pill warn" style="margin-left:4px">AI 해석 — 검토 필요</span></div><div class="fact"><div class="txt">${esc(facts.resume_draft)}</div></div>`);
+  }
+  if((facts.gaps_to_fill||[]).length){
+    blocks.push('<div class="sub" style="margin-top:10px">채워야 할 것</div><ul style="margin:6px 0 0;padding-left:18px;font-size:12.5px">'
+      + facts.gaps_to_fill.map(g=>`<li>${esc(g)}</li>`).join('') + '</ul>');
+  }
+  return blocks.join('');
+}
 async function openExperienceSummary(id){
   const e = EXPERIENCES.find(x=>x.id===id);
   document.getElementById('fmKind').textContent = (e?e.title:id) + ' · AI 요약';
@@ -550,7 +643,7 @@ async function openExperienceSummary(id){
   document.getElementById('filemodal').hidden = false;
   try{
     const detail = await api(`/api/experiences/${encodeURIComponent(id)}`);
-    document.getElementById('fmBody').innerHTML = `<div class="factlist">${factRows(detail.facts)}</div>`;
+    document.getElementById('fmBody').innerHTML = `<div class="factlist">${factRows(detail.facts)}</div>${extraSummarySections(detail.facts)}`;
   }catch(err){
     document.getElementById('fmBody').innerHTML = `<div class="filebody">불러오지 못했습니다: ${esc(err.message)}</div>`;
   }
@@ -573,10 +666,14 @@ function goChatScoped(id){ show('chat'); setScope(id); }
 
 /* =================== WIZARD (실제 ingest) =================== */
 let wstep = 1, wizardResult = null;
+// kind:'folder' -> files:[{file, relativePath}] / kind:'zip' -> zipFile:File
+let wqueue = [];
+
 function openWizard(){
-  wstep = 1; wizardResult = null;
+  wstep = 1; wizardResult = null; wqueue = [];
   document.getElementById('wfolder').value = '';
   document.getElementById('wgrade').value = '3';
+  renderQueue();
   renderWizard();
   document.getElementById('wizard').hidden = false;
 }
@@ -592,15 +689,106 @@ function renderWizard(){
   else if(wstep === 3){ foot.innerHTML = '<button class="btn primary" onclick="closeWizard()">닫기</button>'; }
   else { foot.innerHTML = '<button class="btn" onclick="closeWizard()">취소</button><button class="btn primary" onclick="wizardNext()">다음</button>'; }
 }
+
+/* ---- 폴더/zip 드래그앤드롭 · 찾아보기로 큐에 담기 ---- */
+function renderQueue(){
+  document.getElementById('wqueue').innerHTML = wqueue.map((q, i) => `
+    <div class="queueitem">
+      <span class="qname" title="${attrEsc(q.name)}">${q.kind==='zip'?'🗜️':'📁'} ${esc(q.name)}</span>
+      <span class="qcount">${q.kind==='zip' ? '압축파일' : q.files.length+'개 파일'}</span>
+      <select onchange="wqueue[${i}].grade=Number(this.value)">
+        ${[1,2,3,4].map(g=>`<option value="${g}" ${g===q.grade?'selected':''}>${g}학년</option>`).join('')}
+      </select>
+      <button class="qremove" onclick="wqueue.splice(${i},1); renderQueue()" title="빼기">✕</button>
+    </div>`).join('');
+}
+function addFolderToQueue(name, files){
+  if(!files.length){ toast(`"${name}" 폴더에 읽을 수 있는 파일이 없어요`); return; }
+  // 같은 이름을 다시 담으면 덮어쓴다(다시 끌어다 놓은 걸로 간주)
+  const existing = wqueue.findIndex(q => q.name === name);
+  const grade = existing >= 0 ? wqueue[existing].grade : Number(document.getElementById('wgrade').value) || 3;
+  const item = {kind:'folder', name, files, grade};
+  if(existing >= 0) wqueue[existing] = item; else wqueue.push(item);
+  renderQueue();
+}
+function addZipToQueue(zipFile){
+  const name = zipFile.name.replace(/\.zip$/i, '');
+  const existing = wqueue.findIndex(q => q.name === name);
+  const grade = existing >= 0 ? wqueue[existing].grade : Number(document.getElementById('wgrade').value) || 3;
+  const item = {kind:'zip', name, zipFile, grade};
+  if(existing >= 0) wqueue[existing] = item; else wqueue.push(item);
+  renderQueue();
+}
+document.getElementById('wbrowsezip').addEventListener('click', () => document.getElementById('wzipinput').click());
+document.getElementById('wzipinput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if(file) addZipToQueue(file);
+  e.target.value = '';
+});
+
+// 브라우저 폴더 선택(webkitdirectory) — 한 번에 폴더 1개, File.webkitRelativePath로 상대경로를 안다
+document.getElementById('wbrowse').addEventListener('click', () => document.getElementById('wfileinput').click());
+document.getElementById('wfileinput').addEventListener('change', (e) => {
+  const files = Array.from(e.target.files);
+  if(!files.length) return;
+  const top = files[0].webkitRelativePath.split('/')[0];
+  const mapped = files.map(f => ({file: f, relativePath: f.webkitRelativePath.slice(top.length + 1)}));
+  addFolderToQueue(top, mapped);
+  e.target.value = ''; // 같은 폴더를 다시 골라도 change 이벤트가 또 뜨게
+});
+
+// 드래그앤드롭 — 여러 폴더를 한 번에 놓을 수 있다. DataTransferItem.webkitGetAsEntry()로
+// 폴더 구조를 순회한다(input[webkitdirectory]는 폴더 1개만 되지만 드롭은 여러 개 된다).
+async function readDirEntry(dirEntry, topPrefixLen){
+  const reader = dirEntry.createReader();
+  let entries = [], batch;
+  do {
+    batch = await new Promise((resolve, reject) => reader.readEntries(resolve, reject));
+    entries = entries.concat(batch);
+  } while(batch.length > 0);
+  const out = [];
+  for(const entry of entries){
+    if(entry.isFile){
+      const file = await new Promise((resolve, reject) => entry.file(resolve, reject));
+      out.push({file, relativePath: entry.fullPath.slice(topPrefixLen)});
+    }else if(entry.isDirectory){
+      out.push(...await readDirEntry(entry, topPrefixLen));
+    }
+  }
+  return out;
+}
+const dropzone = document.getElementById('wdropzone');
+['dragenter','dragover'].forEach(ev => dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.add('drag'); }));
+['dragleave','drop'].forEach(ev => dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.remove('drag'); }));
+dropzone.addEventListener('click', () => document.getElementById('wbrowse').click());
+dropzone.addEventListener('drop', async (e) => {
+  const items = Array.from(e.dataTransfer.items || []);
+  const entries = items.map(it => it.webkitGetAsEntry && it.webkitGetAsEntry()).filter(Boolean);
+  if(!entries.length){ toast('폴더나 zip 파일을 끌어다 놓아주세요'); return; }
+  for(const entry of entries){
+    if(entry.isDirectory){
+      const files = await readDirEntry(entry, entry.fullPath.length + 1);
+      addFolderToQueue(entry.name, files);
+    }else if(entry.isFile && entry.name.toLowerCase().endsWith('.zip')){
+      const file = await new Promise((resolve, reject) => entry.file(resolve, reject));
+      addZipToQueue(file);
+    }else{
+      toast(`"${entry.name}"은(는) 건너뜁니다 — 폴더나 zip 파일만 지원해요`);
+    }
+  }
+});
+
 async function wizardNext(){
   if(wstep !== 1) return;
+  if(wqueue.length){ await runUploadQueue(); return; }
   const folder = document.getElementById('wfolder').value.trim();
   const grade = Number(document.getElementById('wgrade').value);
-  if(!folder){ toast('폴더 경로를 입력하세요'); return; }
+  if(!folder){ toast('폴더를 끌어다 놓거나, 경로를 입력하세요'); return; }
   wstep = 2; renderWizard();
+  document.getElementById('wproglist').innerHTML = '<div class="progitem active"><span class="ico">…</span>분석 중…</div>';
   try{
     wizardResult = await apiPost('/api/experiences', {folder, grade});
-    wstep = 3; renderWizard(); renderWizardResult();
+    wstep = 3; renderWizard(); await renderSingleResult(wizardResult);
     await loadExperiences();
     await loadProfileTiles();
     toast('저장되었습니다 — 드라이브와 프로필에 반영됐어요');
@@ -609,15 +797,136 @@ async function wizardNext(){
     toast('분석 실패: ' + err.message.slice(0,150));
   }
 }
-function renderWizardResult(){
-  const {meta, facts} = wizardResult;
+
+async function runUploadQueue(){
+  wstep = 2; renderWizard();
+  const list = document.getElementById('wproglist');
+  list.innerHTML = wqueue.map((q, i) => `<div class="progitem" id="wprog-${i}"><span class="ico">${i+1}</span>${esc(q.name)} — 대기 중</div>`).join('');
+
+  const results = [];
+  for(let i = 0; i < wqueue.length; i++){
+    const q = wqueue[i];
+    const row = document.getElementById(`wprog-${i}`);
+    row.className = 'progitem active';
+    row.innerHTML = `<span class="ico">…</span>${esc(q.name)} — 업로드·분석 중…`;
+    try{
+      const form = new FormData();
+      form.append('id', q.name);
+      form.append('grade', String(q.grade));
+      let url;
+      if(q.kind === 'zip'){
+        form.append('file', q.zipFile);
+        url = '/api/experiences/upload-zip';
+      }else{
+        for(const {file, relativePath} of q.files) form.append('files', file, relativePath);
+        url = '/api/experiences/upload';
+      }
+      const res = await fetch(url, {method:'POST', body: form});
+      if(!res.ok){ const j = await res.json().catch(()=>({})); throw new Error(j.detail || res.statusText); }
+      const data = await res.json();
+      results.push({name: q.name, ok: true, meta: data.meta});
+      row.className = 'progitem done';
+      const syncNote = data.meta.chunks_synced === false ? ' · ⚠ 검색 인덱스 동기화 실패(나중에 다시 시도 가능, 분석 결과는 저장됨)' : '';
+      row.innerHTML = `<span class="ico">✓</span>${esc(q.name)} — 완료 (근거 ${data.meta.evidence_verified}/${data.meta.evidence_total} 확인됨)${syncNote}`;
+    }catch(err){
+      results.push({name: q.name, ok: false, error: err.message});
+      row.className = 'progitem failed';
+      row.innerHTML = `<span class="ico">✕</span>${esc(q.name)} — 실패: ${esc(err.message.slice(0,120))}`;
+    }
+  }
+
+  wstep = 3; renderWizard();
+  await loadExperiences();
+  await loadProfileTiles();
+  const okCount = results.filter(r=>r.ok).length;
+  toast(`${wqueue.length}개 중 ${okCount}개 저장됨`);
+
+  if(wqueue.length === 1 && results[0].ok){
+    // 폴더 1개면 기존처럼 상세 결과를 바로 보여준다
+    try{
+      const full = await api(`/api/experiences/${encodeURIComponent(results[0].name)}`);
+      await renderSingleResult({meta: full.meta, facts: full.facts});
+    }catch(e){ renderMultiResult(results); }
+  }else{
+    renderMultiResult(results);
+  }
+}
+
+async function retrySyncChunks(expId, btn){
+  btn.disabled = true; btn.textContent = '시도 중…';
+  try{
+    await apiPost(`/api/experiences/${encodeURIComponent(expId)}/sync-chunks`, {});
+    toast('검색 인덱스 동기화 완료');
+    btn.closest('.sub').remove();
+  }catch(err){
+    toast('아직 실패: ' + err.message.slice(0,150));
+    btn.disabled = false; btn.textContent = '다시 시도';
+  }
+}
+async function renderSingleResult({meta, facts}){
+  document.getElementById('w3single').hidden = false;
+  document.getElementById('w3multi').hidden = true;
   document.getElementById('w3title').textContent = meta.title;
   document.getElementById('w3sub').textContent = `${meta.grade}학년 · ${meta.kind} · 근거 ${meta.evidence_verified}/${meta.evidence_total} 확인됨`;
-  document.getElementById('w3facts').innerHTML = factRows(facts);
+  document.getElementById('w3facts').innerHTML = facts ? factRows(facts) : '';
+  if(meta.chunks_synced === false){
+    document.getElementById('w3facts').insertAdjacentHTML('beforebegin',
+      `<div class="sub" style="color:var(--warn);margin-bottom:8px">⚠ 검색 인덱스 동기화 실패(DB 연결 문제) — 분석 결과는 저장됐어요.
+       <button class="btn sm" onclick="retrySyncChunks('${attrEsc(meta.id)}', this)">다시 시도</button></div>`);
+  }
   const oq = meta.open_questions || [];
   document.getElementById('w3questions').innerHTML = oq.length
     ? '<div class="sub" style="margin-top:10px">확인이 필요한 질문</div><ul style="margin:6px 0 0;padding-left:18px;font-size:12.5px">' + oq.map(q=>`<li>${esc(q)}</li>`).join('') + '</ul>'
     : '';
+  await loadIntakeForm(meta.id);
+}
+
+// 업로드 직후 인터뷰: "원본에 명시된 것만 본인 역할로 인정"하는 기준은 그대로 두되,
+// 사용자가 직접 답한 내용은 [본인 진술]로 명시적으로 기록하는 별도 통로를 연다.
+async function loadIntakeForm(expId){
+  const box = document.getElementById('intakeQs');
+  box.innerHTML = '<div class="sub">불러오는 중…</div>';
+  let questions;
+  try{
+    ({questions} = await api(`/api/experiences/${encodeURIComponent(expId)}/intake-questions`));
+  }catch(err){
+    box.innerHTML = `<div class="sub">질문을 불러오지 못했어요: ${esc(err.message)}</div>`;
+    return;
+  }
+  box.innerHTML = questions.map((q, i) => `
+    <div class="intakeq">
+      <label for="intakeq-${i}">${esc(q.question)}</label>
+      <textarea id="intakeq-${i}" data-target="${attrEsc(q.target)}" data-question="${attrEsc(q.question)}"></textarea>
+    </div>`).join('');
+
+  document.getElementById('intakeSubmit').onclick = async () => {
+    const answers = questions.map((q, i) => {
+      const el = document.getElementById(`intakeq-${i}`);
+      return {target: el.dataset.target, question: el.dataset.question, answer: el.value.trim()};
+    }).filter(a => a.answer);
+    if(!answers.length){ toast('답한 내용이 없어요 — 나중에 채팅에서도 말해줄 수 있어요'); return; }
+    try{
+      const res = await apiPost(`/api/experiences/${encodeURIComponent(expId)}/intake`, {answers});
+      document.getElementById('w3facts').innerHTML = factRows(res.facts);
+      document.getElementById('intakeQs').innerHTML = '<div class="sub">저장했어요. 필요하면 채팅에서 더 알려줘도 돼요.</div>';
+      document.querySelector('#w3intake .row').hidden = true;
+      toast(`${answers.length}개 답변을 [본인 진술]로 저장했어요`);
+      await loadExperiences();
+    }catch(err){ toast('저장 실패: ' + err.message.slice(0,150)); }
+  };
+  document.getElementById('intakeSkip').onclick = () => {
+    document.getElementById('w3intake').hidden = true;
+  };
+}
+function renderMultiResult(results){
+  document.getElementById('w3single').hidden = true;
+  document.getElementById('w3multi').hidden = false;
+  const okCount = results.filter(r=>r.ok).length;
+  document.getElementById('w3multisummary').textContent = `${results.length}개 폴더 중 ${okCount}개 저장 완료. 실패한 폴더는 파일을 확인하고 다시 시도하세요.`;
+  document.getElementById('w3multilist').innerHTML = results.map(r => r.ok
+    ? `<div class="progitem done"><span class="ico">✓</span>${esc(r.meta.title || r.name)} 저장됨</div>`
+    : `<div class="progitem failed"><span class="ico">✕</span>${esc(r.name)} — ${esc((r.error||'').slice(0,120))}</div>`
+  ).join('');
 }
 
 /* =================== JOBS =================== */
@@ -767,8 +1076,12 @@ async function submitJobAdd(){
 }
 
 /* =================== CHAT =================== */
+// P0-3: 대화는 이제 서버(체크포인터)가 session_id로 기억한다. chatHistory는 화면에 다시
+// 그릴 때만 쓰는 로컬 사본이고, 서버에 보낼 때는 더 이상 안 보낸다 — 서버가 신뢰 원본이다.
 let scope = null; // null = 전체
 let chatHistory = [];
+let chatSessionId = null;
+
 function renderScopebar(){
   const bar = document.getElementById('scopebar');
   const chips = [{id:null, label:'전체'}, ...EXPERIENCES.map(e=>({id:e.id, label:e.title}))];
@@ -779,7 +1092,17 @@ function renderScopebar(){
   if(scope === null){ note.textContent = `전체 기록(경험 ${EXPERIENCES.length}건 + 공부 기록)에서 찾아 답합니다.`; }
   else{ const e = EXPERIENCES.find(x=>x.id===scope); note.textContent = `"${e?e.title:scope}" 폴더 안에서만 찾아 답합니다 — 다른 프로젝트 내용은 섞이지 않아요.`; }
 }
-function setScope(id){ scope = id; renderScopebar(); }
+async function setScope(id){
+  if(id === scope) return;
+  // 세션 하나는 범위 하나에 고정된다(서버가 강제) — 범위를 바꾸면 이전 세션은 종료하고
+  // (대화가 짧지 않았다면 공부 기록으로 저장) 새 세션으로 넘어간다. 예전엔 scope만 바뀌고
+  // chatHistory·session은 그대로라 다른 범위의 대화 문맥이 새 범위 질문에 섞여 들어갔다.
+  await endChat({silent: true});
+  scope = id;
+  chatHistory = [];
+  document.getElementById('chatlog').innerHTML = '';
+  renderScopebar();
+}
 
 function pushMsg(cls, text, withPin){
   const log = document.getElementById('chatlog');
@@ -820,11 +1143,20 @@ function pushConfirm(correction){
   div.querySelector('#cf-no').onclick = () => { div.remove(); pushMsg('bot', '네, 이번 대화에서만 참고하고 원본 기록은 그대로 둘게요.', true); };
   log.scrollTop = log.scrollHeight;
 }
+async function ensureChatSession(){
+  if(chatSessionId) return chatSessionId;
+  // scope가 null(전체)이면 쿼리 파라미터 자체를 안 보낸다 — 빈 문자열("")을 보내면
+  // FastAPI가 그걸 "scope_id가 빈 문자열인 특정 범위"로 받아서 None과 달라진다.
+  const qs = scope ? `?scope_id=${encodeURIComponent(scope)}` : '';
+  const res = await apiPost(`/api/chat/sessions${qs}`, {});
+  chatSessionId = res.session_id;
+  return chatSessionId;
+}
 async function sendChat(text){
   pushMsg('user', text, false);
-  const historyBefore = chatHistory;
   try{
-    const res = await apiPost('/api/chat', {message:text, history:historyBefore, scope_id:scope});
+    await ensureChatSession();
+    const res = await apiPost('/api/chat', {message:text, session_id:chatSessionId, scope_id:scope});
     chatHistory = res.history;
     pushMsg('bot', res.answer, true);
     if(res.correction) pushConfirm(res.correction);
@@ -836,6 +1168,31 @@ document.querySelectorAll('.suggest button').forEach(b => b.addEventListener('cl
 document.getElementById('chatsend').addEventListener('click', () => {
   const el = document.getElementById('chatinput'); const v = el.value.trim(); if(!v) return;
   el.value = ''; sendChat(v);
+});
+
+// 대화가 끝났다는 걸 서버에 알려서, 턴이 충분히 쌓였으면 '배운 것/헷갈리는 것'을 공부
+// 기록으로 저장한다. {silent:true}는 범위 전환처럼 사용자가 직접 누른 게 아닐 때 —
+// 저장이 안 됐어도(예: 대화 2턴 미만) 조용히 넘어가고 토스트로 방해하지 않는다.
+async function endChat({silent=false}={}){
+  const sid = chatSessionId;
+  chatSessionId = null; // 다음 메시지는 새 세션으로 — 실패해도 이전 세션에 계속 이어붙이지 않는다
+  if(!sid) return;
+  try{
+    const summary = await apiPost('/api/chat/end', {chat_session_id: sid});
+    if(summary){
+      toast(`공부 기록 저장: ${summary.topic} (배운 것 ${summary.learned_count}건)`);
+      if(!silent) pushMsg('bot', '이번 대화 내용을 공부 기록으로 저장했어요. 새 대화를 시작합니다.', false);
+    }else if(!silent){
+      pushMsg('bot', '대화가 짧아서 공부 기록으로 남기지는 않았어요. 새 대화를 시작합니다.', false);
+    }
+  }catch(err){
+    if(!silent) toast('대화 종료 처리 실패: ' + err.message.slice(0,150));
+  }
+}
+document.getElementById('chatend').addEventListener('click', async () => {
+  await endChat({silent:false});
+  chatHistory = [];
+  document.getElementById('chatlog').innerHTML = '';
 });
 document.getElementById('chatinput').addEventListener('keydown', e => { if(e.key === 'Enter') document.getElementById('chatsend').click(); });
 

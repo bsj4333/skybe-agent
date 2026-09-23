@@ -55,24 +55,90 @@ def owner_conflict(claim: str, quote: str) -> bool:
     )
 
 
-def numbers_missing_from(claim: str, quote: str) -> list[str]:
-    """주장에는 있는데 인용문에는 없는 수치. 있으면 그 인용문은 주장을 다 못 받친다."""
-    return sorted(numbers(claim) - numbers(quote))
+_NUM_UNIT = re.compile(
+    r"(\d+(?:[.,]\d+)*)\s*(%|퍼센트|점|개|명|건|회|배|시간|분|초|위|ms|kg|km|g|℃)?"
+)
+# 마침표는 소수점("0.88")이 아닐 때만 절 경계로 본다 — 안 그러면 숫자 중간에서 문맥이
+# 잘려서 정작 필요한 지표 이름("정확도가")이 이전 절로 밀려나 버린다.
+_CLAUSE_BOUNDARY = re.compile(r"(?<!\d)\.(?!\d)|[!?,\n]")
+_CONTEXT_RADIUS = 80  # 이 안에서 절 경계(마침표·쉼표·줄바꿈)를 찾는다
 
 
-def numbers(text: str, ignore: list[str] | None = None) -> set[str]:
-    for token in ignore or []:
-        text = text.replace(token, " ")
+def _mask_noise(text: str) -> str:
     text = _LIST_MARKER.sub("", text)
-    text = re.sub(r"\b\d+[dD]\b", " ", text)
-    found: set[str] = set()
-    for token in _NUMBER.findall(text):
-        token = token.replace(",", "")
-        found.add(token)
-        for part in token.split("."):
-            found.add(part)
-            found.add(part.lstrip("0") or "0")
-    return found
+    return re.sub(r"\b\d+[dD]\b", " ", text)  # "3D 프린터"의 "3D"는 숫자가 아니다
+
+
+def _clause_before(text: str, pos: int) -> str:
+    """숫자가 속한 절의 시작까지 거슬러 올라간다(마침표·쉼표·줄바꿈 기준).
+
+    처음엔 "숫자 바로 앞 단어 하나"를 지표 이름으로 잡으려 했는데, 실데이터
+    ("F1-score가 기준 모델(단순 임계값) 0.71에서 제안 모델 0.86으로")처럼 지표와 숫자
+    사이에 괄호·수식어가 끼면 엉뚱한 단어("모델")를 잡거나 아예 못 잡았다(빈 문자열).
+    그러면 진짜 같은 지표를 다르게 표현한 정상적인 문장까지 '지지 안 됨'으로 걸렸다.
+    절 전체를 보고 겹치는 정도를 재면 중간에 낀 수식어에 덜 흔들린다.
+    """
+    window_start = max(0, pos - _CONTEXT_RADIUS)
+    boundary = window_start
+    for m in _CLAUSE_BOUNDARY.finditer(text, window_start, pos):
+        boundary = m.end()
+    return text[boundary:pos]
+
+
+def number_mentions(text: str) -> list[dict]:
+    """텍스트에서 숫자 언급을 (원문 문자열, 값, 단위, 숫자가 속한 절)으로 뽑는다.
+
+    예전에는 숫자를 문자열 집합으로만 비교해서 `0.71`을 `{"0.71","0","71"}`로 쪼개
+    넣었다. 그 결과 근거 `F1-score가 0.71`에 대해 답변 `정확도 71%`가 숫자 존재만으로
+    통과했다(F05). 이제는 값이 같아도 **속한 절이 다른 지표를 말하고 있으면** 다른
+    수치로 본다 — 단, 이 검사는 아래 `_mention_supported`에서 값이 스케일만 다르게
+    (소수↔퍼센트) 같을 때만 적용한다. 완전히 같은 값은 절 내용과 무관하게 지지된다.
+    """
+    text = _mask_noise(text)
+    out = []
+    for m in _NUM_UNIT.finditer(text):
+        raw = m.group(1).replace(",", "")
+        try:
+            value = float(raw)
+        except ValueError:
+            continue
+        unit = "percent" if m.group(2) in ("%", "퍼센트") else (m.group(2) or "")
+        out.append({"raw": raw, "value": value, "unit": unit, "ctx": _clause_before(text, m.start())})
+    return out
+
+
+def _same_scale(a: float, b: float) -> bool:
+    return abs(a - b) < 1e-9
+
+
+def _cross_scale(a: float, b: float) -> bool:
+    """"0.71"과 "71%"처럼 같은 비율을 소수/퍼센트로 다르게 적은 경우만 같다고 본다.
+    그 밖에 숫자가 우연히 100배 차이 나는 경우까지 같다고 보면 오탐이 늘어난다."""
+    for x, y in ((a, b), (b, a)):
+        if 0 < x <= 1 and abs(x * 100 - y) < 1e-6:
+            return True
+    return False
+
+
+def _context_overlap(a: str, b: str) -> float:
+    au, bu = units(a), units(b)
+    if not au or not bu:
+        return 0.0
+    return len(au & bu) / min(len(au), len(bu))
+
+
+def _mention_supported(claim: dict, sources: list[dict]) -> bool:
+    for s in sources:
+        if _same_scale(claim["value"], s["value"]):
+            # 완전히 같은 값. 단위가 둘 다 있는데 다르면(예: "42명" vs "42ms") 다른 수치다.
+            if claim["unit"] and s["unit"] and claim["unit"] != s["unit"]:
+                continue
+            return True
+        if _cross_scale(claim["value"], s["value"]):
+            # 값이 우연히 스케일만 같다 — 진짜 같은 지표를 말하는지 절 내용으로 확인한다.
+            if _context_overlap(claim["ctx"], s["ctx"]) >= SUPPORT_MIN_OVERLAP:
+                return True
+    return False
 
 
 def job_ascii_terms(items: list[str]) -> set[str]:
@@ -84,5 +150,16 @@ def terms_only_in_job(draft: str, job_terms: set[str], experiences: str) -> list
     return sorted(t for t in job_terms if t in draft_l and t not in exp_l)
 
 
+def numbers_missing_from(claim: str, quote: str) -> list[str]:
+    """주장에는 있는데 인용문에는 (같은 지표·값으로) 없는 수치. 있으면 그 인용문은
+    주장을 다 못 받친다."""
+    quote_mentions = number_mentions(quote)
+    return sorted({c["raw"] for c in number_mentions(claim) if not _mention_supported(c, quote_mentions)})
+
+
 def unsupported_numbers(answer: str, sources: str, ignore: list[str] | None = None) -> list[str]:
-    return sorted(numbers(answer, ignore) - numbers(sources))
+    text = answer
+    for token in ignore or []:
+        text = text.replace(token, " ")
+    source_mentions = number_mentions(sources)
+    return sorted({c["raw"] for c in number_mentions(text) if not _mention_supported(c, source_mentions)})

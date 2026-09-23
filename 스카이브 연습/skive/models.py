@@ -35,6 +35,18 @@ class Experience(BaseModel):
     skills: list[str]
     lessons: str = Field(description="원문에 명시된 배운 점. 없으면 '확인 필요'")
     open_questions: list[str] = Field(description="원문만으로 확정할 수 없어 사용자에게 물어봐야 할 구체적 질문")
+    resume_draft: str = Field(
+        description="이 경험을 포트폴리오·자소서에 쓸 때 시작점이 될 2~3문장 초안. "
+        "actions/decisions_and_trials/results에 있는 사실만 쓴다. 본인 역할이 '확인 필요'면 "
+        "주체를 '팀'으로 쓴다. 새 수치나 사실을 지어내지 않는다 — 이 초안은 검증된 문장이 "
+        "아니라 사용자가 다듬을 시작점이다."
+    )
+    gaps_to_fill: list[str] = Field(
+        description="이 경험을 더 강한 포트폴리오·자소서 소재로 만들려면 사용자가 추가로 "
+        "채워야 할 구체적인 것. 예: '정확한 참여 기간', '최종 결과 수치', '본인이 직접 "
+        "결정한 부분'. open_questions와 달리 이건 '역할이 뭐였나' 같은 필수 확인이 아니라 "
+        "'있으면 더 좋은 것'이다. 없으면 빈 리스트."
+    )
 
 
 class ImportanceLLM(BaseModel):
@@ -116,7 +128,7 @@ class Answerability(BaseModel):
 
 
 class SentenceCheck(BaseModel):
-    sentence: str
+    sentence_id: str = Field(description="검사한 문장의 ID. 입력에 [S1], [S2]처럼 붙어 있는 것을 그대로 옮긴다")
     verdict: Literal["supported", "unsupported", "misattributed"]
     reason: str
 
@@ -131,7 +143,7 @@ class CorrectionProposal(BaseModel):
         description="correction=이미 저장된 사실이 틀렸다고 정정. new_fact=기존에 없던 새로운 사실을 추가로 말함"
     )
     experience_id: str = Field(description="대상 경험 id. [관련 기록]에 나온 id의 '/' 앞부분만 쓴다. 모르면 빈 문자열")
-    field: Literal["my_role", "action", "decision", "result"] = Field(
+    field: Literal["my_role", "action", "decision", "result", "lessons"] = Field(
         description="대상 종류. is_correction이 false면 아무거나 골라도 된다"
     )
     original_text: str = Field(

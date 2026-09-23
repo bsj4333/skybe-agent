@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SKIVE Drive</title>
+  <style>
+    :root{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:#202124;background:#f8fafd}
+    *{box-sizing:border-box}body{margin:0}button,input{font:inherit}button{cursor:pointer}
+    header{height:72px;display:flex;align-items:center;gap:18px;padding:0 24px;background:#f8fafd}
+    .brand{font-size:23px;font-weight:750;letter-spacing:-.05em;white-space:nowrap}.brand span{color:#26736d}
+    .search{flex:1;max-width:720px;border:0;border-radius:24px;background:#eaf1f5;padding:13px 20px;outline:none}
+    .account{margin-left:auto;font-size:13px;color:#5f6368;overflow:hidden;text-overflow:ellipsis}
+    main{display:flex;min-height:calc(100vh - 72px)}aside{width:240px;padding:20px 14px;flex:none}
+    .side{width:100%;border:0;background:transparent;text-align:left;border-radius:20px;padding:12px 18px;margin-bottom:4px}
+    .side:hover,.side.active{background:#d9e8e5}.primary{background:#d4e9e5;border:0;border-radius:16px;padding:15px 20px;box-shadow:0 2px 5px #0002;margin-bottom:24px}
+    section{background:white;border-radius:18px 0 0 0;flex:1;min-width:0;padding:24px 30px}
+    h1{font-size:23px;font-weight:500;margin:0 0 20px}.toolbar{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:22px}
+    .toolbar button,.small{border:1px solid #d9dfe5;background:white;border-radius:18px;padding:8px 14px}
+    .toolbar button:hover,.small:hover{background:#eaf1f5}.crumb{color:#477670;cursor:pointer}.muted{color:#70757a;font-size:13px}
+    #sync-status{max-width:520px;margin:-8px 0 22px;padding:12px 15px;border:1px solid #d9e7e4;background:#f3faf8;border-radius:12px;font-size:13px;color:#285e59}
+    #sync-status[hidden]{display:none}#sync-status progress{display:block;width:100%;height:9px;margin-top:8px}
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin:10px 0 28px}
+    .tile{border:1px solid #dde3e8;background:#f8fafd;border-radius:14px;padding:16px;display:flex;align-items:center;gap:12px;cursor:pointer;min-width:0}
+    .tile:hover{background:#e8f0f4}.tile .name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .file-row{display:grid;grid-template-columns:36px minmax(140px,1fr) 110px 125px 135px 92px;gap:8px;align-items:center;padding:10px 12px;border-bottom:1px solid #e7e9ed;font-size:14px}
+    .file-row:hover{background:#f6f9fc}.file-row .name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
+    .actions{display:flex;gap:4px}.actions button{border:0;background:transparent;padding:4px;color:#477670}
+    #auth{max-width:410px;margin:8vh auto;background:white;padding:32px;border-radius:20px;box-shadow:0 8px 35px #203a3a16}
+    #auth h1{font-weight:700}#auth input{display:block;width:100%;padding:13px;margin:12px 0;border:1px solid #bbc5cb;border-radius:8px}
+    #auth button{padding:11px 15px;border:0;border-radius:9px;background:#26736d;color:white;margin-right:8px}
+    #message{position:fixed;bottom:18px;left:18px;background:#263a3c;color:white;padding:12px 18px;border-radius:10px;display:none;z-index:5}
+    #progress{position:fixed;bottom:18px;right:18px;width:min(430px,calc(100vw - 36px));max-height:55vh;overflow:hidden;background:white;border:1px solid #dae0e5;box-shadow:0 5px 25px #0002;border-radius:16px;padding:18px;display:none;z-index:4}
+    .upload-head,.upload-overall{display:flex;align-items:center;justify-content:space-between;gap:12px}.upload-head strong{font-size:16px}
+    .upload-overall{margin:14px 0 5px}.upload-overall progress{flex:1;height:12px}.upload-overall b{font-size:15px;color:#26736d;min-width:42px;text-align:right}
+    progress{accent-color:#26736d}#upload-detail{font-size:12px;color:#70757a;margin-bottom:12px}
+    #progress-list{max-height:29vh;overflow-y:auto;overflow-x:hidden;border-top:1px solid #edf0f2}
+    .progress-item{font-size:12px;padding:10px 0;border-bottom:1px solid #edf0f2;min-width:0}
+    .progress-item .file-label{overflow-wrap:anywhere;line-height:1.4}.progress-item .file-state{color:#70757a;margin-top:3px}
+    .progress-item progress{width:100%;height:7px;margin-top:5px}
+    @media(max-width:720px){aside{width:75px}.side,.primary{font-size:0;padding:12px}.side:before{content:'📁';font-size:20px}.primary:before{content:'+';font-size:24px}.file-row{grid-template-columns:28px minmax(90px,1fr) 80px}.file-row>:nth-child(3),.file-row>:nth-child(4),.file-row>:nth-child(5){display:none}section{padding:20px 12px}}
+  </style>
+</head>
+<body>
+  <div id="auth" hidden>
+    <div class="brand"><span>SKIVE</span> Drive</div><h1>내 자료로 시작하기</h1>
+    <p class="muted">계정마다 파일과 폴더가 분리됩니다.</p>
+    <input id="email" type="email" placeholder="이메일" autocomplete="email">
+    <input id="password" type="password" placeholder="비밀번호" autocomplete="current-password">
+    <button id="signin" type="button">로그인</button><button id="signup" type="button">가입</button>
+    <p id="auth-error" role="status" aria-live="polite" style="min-height:22px;color:#a0352b;font-size:14px"></p>
+  </div>
+  <div id="app" hidden>
+    <header><div class="brand"><span>SKIVE</span> Drive</div><input id="search" class="search" placeholder="내 드라이브에서 검색"><div id="account" class="account"></div><button id="signout" class="small">로그아웃</button></header>
+    <main><aside><button id="new-menu" class="primary">＋ 새로 만들기</button><button id="home" class="side active">내 드라이브</button><button id="refresh" class="side">새로고침</button></aside>
+    <section><h1 id="heading">내 드라이브</h1><div class="toolbar"><button id="new-folder">새 폴더</button><button id="upload-files">파일 업로드</button><button id="upload-folder">폴더 업로드</button><span class="muted" id="count"></span></div>
+    <div id="sync-status" hidden><span id="sync-label"></span><progress id="sync-progress" max="100" value="0"></progress></div>
+    <div id="folders" class="grid"></div><div id="files"></div><p id="empty" class="muted" hidden>이 폴더는 비어 있습니다. 파일이나 폴더를 추가해 보세요.</p></section></main>
+  </div>
+  <input id="file-input" type="file" multiple hidden><input id="folder-input" type="file" webkitdirectory multiple hidden>
+  <div id="message"></div>
+  <div id="progress" role="status" aria-live="polite">
+    <div class="upload-head"><strong id="upload-title">폴더 준비 중</strong><span id="upload-count" class="muted"></span></div>
+    <div class="upload-overall"><progress id="upload-overall" max="100" value="0"></progress><b id="upload-percent">0%</b></div>
+    <div id="upload-detail">0 B / 0 B</div>
+    <div id="progress-list"></div>
+  </div>
+  <dialog id="analysis-dialog" style="width:min(850px,95vw);max-height:85vh;border:0;border-radius:16px;box-shadow:0 10px 40px #0004"><button id="close-analysis" class="small" style="float:right">닫기</button><h2 id="analysis-title"></h2><pre id="analysis-text" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre></dialog>
+  <dialog id="move-dialog" style="width:min(480px,95vw);border:0;border-radius:16px;box-shadow:0 10px 40px #0004"><h2>이동할 폴더</h2><div id="move-path" class="muted"></div><div id="move-list"></div><div style="margin-top:20px;display:flex;gap:8px"><button id="move-select" class="small">여기로 이동</button><button id="move-cancel" class="small">취소</button></div></dialog>
+  <script src="/assets/tus-4.3.1.min.js"></script>
+  <script type="module">
+    import {createClient} from 'https://esm.sh/@supabase/supabase-js@2';
+    const tus=window.tus;
+    const el = id => document.getElementById(id);
+    let cfg, supabase, session, current = null, trail = [], searchMode = false;
+    function authStatus(message, isError=false){const box=el('auth-error');box.textContent=message;box.style.color=isError?'#a0352b':'#26736d'}
+    function authErrorMessage(error){
+      const message=error?.message||String(error);
+      if(/invalid login credentials/i.test(message))return '이메일 또는 비밀번호가 맞지 않습니다. 이미 가입된 계정이라면 로그인 정보를 확인해 주세요.';
+      if(/email not confirmed/i.test(message))return '이메일 확인이 필요합니다. 받은편지함과 스팸함을 확인해 주세요.';
+      if(/user already registered/i.test(message))return '이미 가입된 이메일입니다. 로그인해 주세요.';
+      return message;
+    }
+    function withTimeout(operation,ms=20000){return Promise.race([operation,new Promise((_,reject)=>setTimeout(()=>reject(new Error('인증 서버 응답이 지연됩니다. 페이지를 새로고침하고 다시 시도해 주세요.')),ms))])}
+    function notice(message){const box=el('message');box.textContent=message;box.style.display='block';setTimeout(()=>box.style.display='none',5000)}
+    function clear(node){node.replaceChildren()}
+    function button(label, fn){const b=document.createElement('button');b.textContent=label;b.onclick=fn;return b}
+    async function openFolder(id){trail=await api('/folders/'+id+'/breadcrumbs');current=id;await show()}
+    async function pickFolder(){return new Promise(async resolve=>{
+      const dialog=el('move-dialog');let selected=null;let path=[];
+      async function browse(id){selected=id;path=id?await api('/folders/'+id+'/breadcrumbs'):[];el('move-path').textContent=path.length?path.map(x=>x.name).join(' › '):'내 드라이브';
+        const data=await api('/items'+(id?'?parent_id='+id:''));const list=el('move-list');clear(list);
+        if(id){const up=button('↰  상위 폴더',()=>browse(path.at(-2)?.id||null).catch(fail));up.className='side';list.append(up)}
+        for(const f of data.folders){const row=button('📁  '+f.name,()=>browse(f.id).catch(fail));row.className='side';list.append(row)}
+      }
+      const finish=value=>{dialog.close();resolve(value)};
+      el('move-select').onclick=()=>finish(selected);el('move-cancel').onclick=()=>finish(undefined);dialog.oncancel=e=>{e.preventDefault();finish(undefined)};
+      try{await browse(null);dialog.showModal()}catch(err){fail(err);resolve(undefined)}
+    })}
+    async function api(path, options={}){
+      const {data:{session:live}}=await supabase.auth.getSession();
+      if(!live)throw new Error('로그인이 필요합니다');
+      const response=await fetch('/api/drive'+path,{...options,headers:{'Content-Type':'application/json',Authorization:'Bearer '+live.access_token,...options.headers}});
+      const data=await response.json();if(!response.ok)throw new Error(typeof data.detail==='string'?data.detail:JSON.stringify(data.detail));return data;
+    }
+    async function show(){
+      const data=await api('/items'+(current?'?parent_id='+current:''));searchMode=false;
+      render(data);el('heading').textContent=trail.length?trail.map((p,i)=>p.name).join('  ›  '):'내 드라이브';
+    }
+    async function refreshSummary(){
+      if(!session)return;
+      const summary=await api('/summary');
+      const pendingUpload=summary.total_files-summary.uploaded_files;
+      const analysisDone=summary.analyzed_files+summary.analysis_issues;
+      const pendingAnalysis=summary.uploaded_files-analysisDone;
+      const box=el('sync-status');box.hidden=pendingUpload===0&&pendingAnalysis===0;
+      if(pendingUpload){
+        const percent=summary.total_bytes?Math.round(100*summary.uploaded_bytes/summary.total_bytes):0;
+        el('sync-progress').value=percent;
+        el('sync-label').textContent=`서버 저장 ${summary.uploaded_files}/${summary.total_files}개 · ${formatSize(summary.uploaded_bytes)} / ${formatSize(summary.total_bytes)} (${percent}%)`;
+      }else if(pendingAnalysis){
+        const percent=summary.uploaded_files?Math.round(100*analysisDone/summary.uploaded_files):0;
+        el('sync-progress').value=percent;
+        el('sync-label').textContent=`자료 읽는 중 ${analysisDone}/${summary.uploaded_files}개 (${percent}%) · 분석 불가 ${summary.analysis_issues}개`;
+      }
+      return pendingUpload+pendingAnalysis;
+    }
+    function render(data){
+      clear(el('folders'));clear(el('files'));el('count').textContent=`${data.folders.length}개 폴더 · ${data.files.length}개 파일`;
+      el('empty').hidden=!!(data.folders.length||data.files.length);
+      if(trail.length&&!searchMode){const up=document.createElement('div');up.className='tile';up.textContent='↰  상위 폴더';up.onclick=()=>{trail.pop();current=trail.at(-1)?.id||null;show().catch(fail)};el('folders').append(up)}
+      for(const f of data.folders){
+        const tile=document.createElement('div');tile.className='tile';
+        const name=document.createElement('span');name.className='name';name.textContent='📁  '+f.name;name.title=f.name;
+        name.onclick=()=>openFolder(f.id).catch(fail);
+        const more=button('⋮',async e=>{e.stopPropagation();const action=prompt('폴더: 이름 변경은 r, 이동은 m, 휴지통은 d');if(!action)return;
+          try{if(action==='r'){const n=prompt('새 이름',f.name);if(n)await api('/folders/'+f.id,{method:'PATCH',body:JSON.stringify({name:n})})}
+          if(action==='m'){const id=await pickFolder();if(id!==undefined)await api('/folders/'+f.id+'/move',{method:'POST',body:JSON.stringify({parent_id:id})})}
+          if(action==='d'&&confirm('폴더를 휴지통으로 이동할까요?'))await api('/folders/'+f.id,{method:'DELETE'});await show()}catch(err){fail(err)}});
+        tile.append(name,more);el('folders').append(tile);
+      }
+      for(const f of data.files){
+        const row=document.createElement('div');row.className='file-row';
+        const icon=document.createElement('span');icon.textContent='📄';
+        const name=document.createElement('span');name.className='name';name.textContent=f.name;name.title=f.name;
+        name.onclick=()=>download(f).catch(fail);
+        const size=document.createElement('span');size.className='muted';size.textContent=formatSize(f.size_bytes);
+        const date=document.createElement('span');date.className='muted';date.textContent=new Date(f.updated_at).toLocaleDateString('ko-KR');
+        const state=document.createElement('span');state.className='muted';state.textContent=f.upload_status==='pending'?'업로드 대기':({queued:'분석 대기',processing:'분석 중',ready:'분석 완료',unsupported:'분석 미지원',failed:'분석 실패'}[f.analysis_status]||f.analysis_status);
+        const actions=document.createElement('span');actions.className='actions';actions.append(button('읽기',()=>showAnalysis(f).catch(fail)),button('↓',()=>download(f).catch(fail)),button('⋮',async()=>{
+          const action=prompt('파일: 이름 변경은 r, 이동은 m, 휴지통은 d');if(!action)return;
+          try{if(action==='r'){const n=prompt('새 이름',f.name);if(n)await api('/files/'+f.id,{method:'PATCH',body:JSON.stringify({name:n})})}
+          if(action==='m'){const id=await pickFolder();if(id!==undefined)await api('/files/'+f.id+'/move',{method:'POST',body:JSON.stringify({parent_id:id})})}
+          if(action==='d'&&confirm('파일을 휴지통으로 이동할까요?'))await api('/files/'+f.id,{method:'DELETE'});await show()}catch(err){fail(err)}
+        }));row.append(icon,name,size,date,state,actions);el('files').append(row);
+      }
+    }
+    function formatSize(bytes){if(bytes<1024)return bytes+' B';const unit=Math.floor(Math.log(bytes)/Math.log(1024));return (bytes/1024**unit).toFixed(1)+' '+['B','KB','MB','GB','TB'][unit]}
+    async function download(f){if(f.upload_status!=='uploaded')throw new Error('업로드가 아직 끝나지 않았습니다');
+      const {data,error}=await supabase.storage.from(cfg.bucket).createSignedUrl(f.storage_path,60,{download:f.name});if(error)throw error;window.location.href=data.signedUrl}
+    async function showAnalysis(f){const result=await api('/files/'+f.id+'/analysis');el('analysis-title').textContent=result.name;
+      const preview=(result.preview_chunks||[]).map(chunk=>`[${chunk.location}]\n${chunk.text}`).join('\n\n');
+      const overview=result.analysis_markdown||result.analysis_error||'텍스트 추출 대기 중입니다.';
+      el('analysis-text').textContent=overview+(preview?'\n\n---\n추출된 원문 미리보기 (최대 12구간)\n\n'+preview:'');
+      el('analysis-dialog').showModal()}
+    function fail(error){notice(error.message||String(error));console.error(error)}
+    async function createFolder(name,parentId){return api('/folders',{method:'POST',body:JSON.stringify({name,parent_id:parentId})})}
+    const pendingKey=(file,relative,parentId)=>`skive-upload:${session.user.id}:${parentId||'root'}:${relative}:${file.size}:${file.lastModified}`;
+    const uploadState={queue:[],running:0,totalFiles:0,done:0,failed:0,totalBytes:0,completedBytes:0,active:new Map(),nextId:0,paintQueued:false};
+    let refreshQueued=false;
+    function scheduleFolderRefresh(){
+      if(refreshQueued)return;refreshQueued=true;
+      setTimeout(()=>{refreshQueued=false;if(session&&!searchMode)show().catch(fail)},2500);
+    }
+    function paintUploads(){
+      const state=uploadState;
+      const activeBytes=[...state.active.values()].reduce((a,b)=>a+b,0);
+      const sent=state.completedBytes+activeBytes;
+      const percent=state.totalBytes?Math.min(100,Math.round(sent/state.totalBytes*100)):
+        (state.totalFiles?Math.round(state.done/state.totalFiles*100):0);
+      el('upload-overall').value=percent;el('upload-percent').textContent=percent+'%';
+      el('upload-count').textContent=`${state.done}/${state.totalFiles}개 완료`;
+      el('upload-detail').textContent=`${formatSize(sent)} / ${formatSize(state.totalBytes)} · 전송 ${state.running}개 · 대기 ${state.queue.length}개${state.failed?' · 실패 '+state.failed+'개':''}`;
+      el('upload-title').textContent=state.running||state.queue.length?'파일 업로드 중':state.failed?'일부 파일 업로드 실패':'업로드 완료';
+    }
+    function scheduleUploadPaint(){if(uploadState.paintQueued)return;uploadState.paintQueued=true;requestAnimationFrame(()=>{uploadState.paintQueued=false;paintUploads()})}
+    function progressItem(relative){
+      const row=document.createElement('div');row.className='progress-item';
+      const label=document.createElement('div');label.className='file-label';label.textContent=relative;
+      const state=document.createElement('div');state.className='file-state';state.textContent='파일 준비 중';
+      const bar=document.createElement('progress');bar.max=100;bar.value=0;row.append(label,state,bar);
+      const list=el('progress-list');list.append(row);if(list.children.length>12)list.firstElementChild.remove();
+      return {state,bar};
+    }
+    async function uploadOne(file,parentId,relative,onProgress,onState){
+      if(!tus?.Upload)throw new Error('브라우저 업로드 모듈이 로드되지 않았습니다. 페이지를 새로고침해 주세요.');
+      const key=pendingKey(file,relative,parentId);let info;
+      try{info=JSON.parse(localStorage.getItem(key)||'null')}catch{};
+      if(info){
+        try{
+          const currentFile=await api('/files/'+info.id+'/status');
+          if(currentFile.size_bytes!==file.size||currentFile.storage_path!==info.storage_path){
+            localStorage.removeItem(key);info=null;
+          }else if(currentFile.upload_status==='uploaded'){
+            localStorage.removeItem(key);onProgress(file.size,file.size);onState('이미 저장됨');return;
+          }
+        }catch(error){
+          if(!/File not found/.test(error.message))throw error;
+          localStorage.removeItem(key);info=null;
+        }
+      }
+      if(!info){info=await api('/files/init',{method:'POST',body:JSON.stringify({name:file.name,parent_id:parentId,size_bytes:file.size,mime_type:file.type||'application/octet-stream'})});localStorage.setItem(key,JSON.stringify(info));scheduleFolderRefresh()}
+      const {data:{session:live}}=await supabase.auth.getSession();
+      onState('전송 중');
+      await new Promise(async(resolve,reject)=>{
+        const storageHost=cfg.url.endsWith('.supabase.co')?cfg.url.replace('.supabase.co','.storage.supabase.co'):cfg.url;
+        const upload=new tus.Upload(file,{endpoint:storageHost+'/storage/v1/upload/resumable',retryDelays:[0,3000,5000,10000,20000],
+          fingerprint:()=>Promise.resolve(['skive',session.user.id,info.storage_path,file.name,file.size,file.lastModified].join(':')),
+          headers:{authorization:'Bearer '+live.access_token,apikey:cfg.key},uploadDataDuringCreation:true,removeFingerprintOnSuccess:true,chunkSize:6*1024*1024,
+          metadata:{bucketName:cfg.bucket,objectName:info.storage_path,contentType:file.type||'application/octet-stream',cacheControl:'3600'},
+          onError:reject,onProgress,onSuccess:resolve});
+        try{const previous=await upload.findPreviousUploads();if(previous.length)upload.resumeFromPreviousUpload(previous[0]);upload.start()}catch(err){reject(err)}
+      });
+      onState('완료 처리 중');
+      await api('/files/'+info.id+'/complete',{method:'POST'});localStorage.removeItem(key);scheduleFolderRefresh();
+    }
+    async function runQueuedUpload(task){
+      const state=uploadState,id=++state.nextId,view=progressItem(task.relative);
+      state.active.set(id,0);scheduleUploadPaint();
+      try{
+        await uploadOne(task.file,task.parentId,task.relative,(sent,total)=>{
+          state.active.set(id,sent);view.bar.value=total?Math.round(sent/total*100):100;
+          view.state.textContent=`전송 중 · ${view.bar.value}%`;scheduleUploadPaint();
+        },text=>{view.state.textContent=text});
+        state.completedBytes+=task.file.size;state.done++;view.bar.value=100;view.state.textContent='완료';
+      }catch(error){state.failed++;view.state.textContent='실패 · '+(error.message||String(error));console.error('SKIVE upload failed',task.relative,error)}
+      finally{state.active.delete(id);scheduleUploadPaint();scheduleFolderRefresh()}
+    }
+    function pumpUploads(){
+      const state=uploadState;
+      while(state.running<2&&state.queue.length){
+        const task=state.queue.shift();state.running++;
+        runQueuedUpload(task).finally(()=>{
+          state.running--;scheduleUploadPaint();pumpUploads();
+          if(!state.running&&!state.queue.length)notice(`${state.done}개 파일 업로드 완료${state.failed?` · ${state.failed}개 실패. 같은 폴더를 다시 선택해 재개하세요.`:''}`);
+        });
+      }
+    }
+    async function uploadMany(files,isFolder){
+      if(!files.length)return;
+      const base=current,state=uploadState;
+      if(!state.running&&!state.queue.length){
+        state.totalFiles=0;state.done=0;state.failed=0;state.totalBytes=0;state.completedBytes=0;
+        state.active.clear();clear(el('progress-list'));
+      }
+      el('progress').style.display='block';
+      el('upload-title').textContent=isFolder?'폴더 준비 중':'파일 준비 중';
+      let folders={};
+      if(isFolder){
+        const paths=[...new Set(files.map(file=>file.webkitRelativePath.split('/').slice(0,-1).join('/')).filter(Boolean))];
+        try{
+          folders=(await api('/folders/import-tree',{method:'POST',body:JSON.stringify({parent_id:base,paths})})).folders;
+          await show(); // Parent folder appears before the first byte is uploaded.
+        }catch(error){el('upload-title').textContent='폴더 준비 실패';throw error}
+      }
+      for(const file of files){
+        const relative=isFolder?file.webkitRelativePath:file.name;
+        const folderPath=isFolder?relative.split('/').slice(0,-1).join('/'):'';
+        state.queue.push({file,relative,parentId:isFolder?folders[folderPath]:base});
+        state.totalFiles++;state.totalBytes+=file.size;
+      }
+      scheduleUploadPaint();pumpUploads();
+    }
+    async function signedIn(live){session=live;el('auth').hidden=true;el('app').hidden=false;el('account').textContent=live.user.email;current=null;trail=[];await show();await refreshSummary()}
+    async function boot(){
+      try{const r=await fetch('/api/drive/config');if(!r.ok)throw new Error('Supabase 설정이 필요합니다. 프로젝트 루트 .env에 SUPABASE_URL과 SUPABASE_PUBLISHABLE_KEY를 추가하세요.');cfg=await r.json();
+        supabase=createClient(cfg.url,cfg.key);const {data:{session:live}}=await withTimeout(supabase.auth.getSession());if(live)await signedIn(live);else el('auth').hidden=false;
+        supabase.auth.onAuthStateChange((event,active)=>{
+          if(event==='SIGNED_OUT'){session=null;el('app').hidden=true;el('auth').hidden=false}
+          else if(event==='SIGNED_IN'&&active){
+            // Supabase holds its auth lock during this callback. Defer API calls.
+            setTimeout(()=>{if(session?.user?.id!==active.user.id)signedIn(active).catch(fail)},0)
+          }
+        })
+      }catch(err){el('auth').hidden=false;authStatus('연결 준비 실패: '+authErrorMessage(err),true);console.error(err)}
+    }
+    async function submitAuth(kind){
+      const email=el('email').value.trim();const password=el('password').value;
+      if(!email||!password){authStatus('이메일과 비밀번호를 입력해 주세요.',true);return}
+      if(!supabase){authStatus('인증 연결이 준비되지 않았습니다. 페이지를 새로고침해 주세요.',true);return}
+      el('signin').disabled=true;el('signup').disabled=true;
+      authStatus(kind==='signin'?'로그인 확인 중...':'가입 요청 중...');
+      try{
+        const result=await withTimeout(kind==='signin'
+          ?supabase.auth.signInWithPassword({email,password})
+          :supabase.auth.signUp({email,password}));
+        if(result.error)throw result.error;
+        if(result.data.session){await signedIn(result.data.session)}
+        else authStatus('이메일 확인 링크를 보냈습니다. 받은편지함과 스팸함을 확인한 뒤 로그인해 주세요. 이미 가입된 이메일이라면 로그인하세요.');
+      }catch(err){authStatus(authErrorMessage(err),true);console.error('SKIVE Auth request failed',err)}
+      finally{el('signin').disabled=false;el('signup').disabled=false}
+    }
+    el('signin').onclick=()=>submitAuth('signin');
+    el('signup').onclick=()=>submitAuth('signup');
+    el('signout').onclick=()=>supabase.auth.signOut().catch(fail);
+    el('home').onclick=()=>{current=null;trail=[];show().catch(fail)};el('refresh').onclick=()=>show().catch(fail);
+    el('new-folder').onclick=async()=>{const name=prompt('폴더 이름');if(!name)return;try{await createFolder(name,current);await show()}catch(err){fail(err)}};
+    el('new-menu').onclick=()=>el('new-folder').click();
+    el('upload-files').onclick=()=>el('file-input').click();el('upload-folder').onclick=()=>el('folder-input').click();
+    el('file-input').onchange=e=>{uploadMany([...e.target.files],false).catch(fail);e.target.value=''};
+    el('folder-input').onchange=e=>{uploadMany([...e.target.files],true).catch(fail);e.target.value=''};
+    el('search').onkeydown=async e=>{if(e.key!=='Enter')return;const q=e.target.value.trim();if(!q){await show();return}try{const data=await api('/search?q='+encodeURIComponent(q));searchMode=true;render(data);el('heading').textContent='검색: '+q}catch(err){fail(err)}};
+    el('close-analysis').onclick=()=>el('analysis-dialog').close();
+    setInterval(async()=>{if(session&&!document.hidden){try{const pending=await refreshSummary();if(pending&&!searchMode)await show()}catch(error){console.error(error)}}},10000);
+    boot();
+  </script>
+</body>
+</html>

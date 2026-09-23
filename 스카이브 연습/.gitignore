@@ -1,0 +1,7 @@
+# 대화 세션 저장소 (P0-3, skive/chat.py CHECKPOINTER). 사용자 대화 로그이자 실행 시점마다
+# 계속 바뀌는 런타임 상태라, 위 data/ 아래 나머지 샘플 데이터(profile.json 등)와 달리
+# git으로 관리하지 않는다.
+data/sessions.sqlite3
+data/sessions.sqlite3-shm
+data/sessions.sqlite3-wal
+.pytest-drive-eval/
