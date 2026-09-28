@@ -1,10 +1,13 @@
 import csv
 import json
 import math
+import posixpath
+import xml.etree.ElementTree as ET
 from collections import deque
 from dataclasses import dataclass
 from itertools import zip_longest
 from pathlib import Path
+from zipfile import ZipFile
 
 from docx import Document
 from docx.table import Table
@@ -164,16 +167,38 @@ def _csv_profile(source: str, path: Path) -> list[Chunk]:
     return [Chunk(source, f"CSV L1-L{row_count+1} 전체 스캔", "\n".join(lines))]
 
 
-def _pdf_chunks(source: str, path: Path) -> list[Chunk]:
+def _pdf_chunks(source: str, path: Path, coverage: dict | None = None) -> list[Chunk]:
     reader = PdfReader(path)
-    return [
-        Chunk(source, f"p.{i}", (page.extract_text() or "").strip())
-        for i, page in enumerate(reader.pages, start=1)
-    ]
-
-
-def _pptx_chunks(source: str, path: Path) -> list[Chunk]:
     chunks = []
+    detected = extracted = 0
+    for i, page in enumerate(reader.pages, start=1):
+        chunks.append(Chunk(source, f"p.{i}", (page.extract_text() or "").strip()))
+        for number, reference in enumerate(page.get("/Annots") or [], start=1):
+            try:
+                annotation = reference.get_object()
+            except (AttributeError, KeyError, TypeError, ValueError):
+                detected += 1
+                continue
+            if str(annotation.get("/Subtype", "")) == "/Popup":
+                continue  # The parent annotation carries the comment text.
+            detected += 1
+            value = annotation.get("/Contents") or annotation.get("/RC")
+            note = value.strip() if isinstance(value, str) else ""
+            if not note:
+                continue
+            subtype = str(annotation.get("/Subtype", "unknown")).lstrip("/")
+            chunks.append(Chunk(source, f"p.{i} annotation {number} ({subtype})", note))
+            extracted += 1
+    if coverage is not None:
+        coverage["supplemental"].append({"kind": "pdf_annotations", "label": "PDF 주석",
+            "detected": detected, "extracted": extracted,
+            "status": "absent" if not detected else "complete" if detected == extracted else "partial"})
+    return chunks
+
+
+def _pptx_chunks(source: str, path: Path, coverage: dict | None = None) -> list[Chunk]:
+    chunks = []
+    detected = extracted = 0
     for i, slide in enumerate(Presentation(path).slides, start=1):
         texts = [
             shape.text_frame.text
@@ -181,10 +206,90 @@ def _pptx_chunks(source: str, path: Path) -> list[Chunk]:
             if shape.has_text_frame and shape.text_frame.text.strip()
         ]
         chunks.append(Chunk(source, f"slide {i}", "\n".join(texts)))
+        if slide.has_notes_slide:
+            frame = slide.notes_slide.notes_text_frame
+            if frame is None:
+                detected += 1
+            elif frame.text.strip():
+                detected += 1
+                chunks.append(Chunk(source, f"slide {i} speaker notes", frame.text.strip()))
+                extracted += 1
+    if coverage is not None:
+        coverage["supplemental"].append({"kind": "speaker_notes", "label": "PPT 발표자 노트",
+            "detected": detected, "extracted": extracted,
+            "status": "absent" if not detected else "complete" if detected == extracted else "partial"})
     return chunks
 
 
-def _xlsx_chunks(source: str, path: Path):
+def _office_part(base: str, target: str) -> str:
+    return target.lstrip("/") if target.startswith("/") else posixpath.normpath(
+        posixpath.join(posixpath.dirname(base), target)
+    )
+
+
+def _xlsx_comments(source: str, path: Path, coverage: dict | None):
+    """Read OOXML legacy notes and threaded comments without loading all cells into memory."""
+    kind_counts = {"cell_notes": [0, 0], "threaded_comments": [0, 0]}
+    with ZipFile(path) as archive:
+        names = set(archive.namelist())
+        rel_ns = "{http://schemas.openxmlformats.org/package/2006/relationships}"
+        office_rel = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id"
+        book = ET.fromstring(archive.read("xl/workbook.xml"))
+        book_rels = ET.fromstring(archive.read("xl/_rels/workbook.xml.rels"))
+        targets = {r.attrib["Id"]: _office_part("xl/workbook.xml", r.attrib["Target"])
+                   for r in book_rels.findall(f"{rel_ns}Relationship")}
+        linked: set[str] = set()
+        for sheet in book.iter():
+            if not sheet.tag.endswith("}sheet"):
+                continue
+            sheet_name = sheet.attrib.get("name", "unknown")
+            sheet_part = targets.get(sheet.attrib.get(office_rel, ""))
+            if not sheet_part:
+                continue
+            sheet_rels = posixpath.join(posixpath.dirname(sheet_part), "_rels",
+                                       posixpath.basename(sheet_part) + ".rels")
+            if sheet_rels not in names:
+                continue
+            for relationship in ET.fromstring(archive.read(sheet_rels)).findall(f"{rel_ns}Relationship"):
+                rel_type = relationship.attrib.get("Type", "").lower()
+                kind = ("threaded_comments" if "threadedcomment" in rel_type else
+                        "cell_notes" if rel_type.endswith("/comments") else None)
+                if not kind:
+                    continue
+                part = _office_part(sheet_part, relationship.attrib["Target"])
+                if part not in names:
+                    kind_counts[kind][0] += 1
+                    continue
+                linked.add(part)
+                with archive.open(part) as stream:
+                    for _, element in ET.iterparse(stream, events=("end",)):
+                        tag = element.tag.rsplit("}", 1)[-1]
+                        if tag not in {"comment", "threadedComment"}:
+                            continue
+                        kind_counts[kind][0] += 1
+                        address = element.attrib.get("ref", "unknown cell")
+                        content = "".join(element.itertext()).strip()
+                        if content:
+                            label = "cell note" if kind == "cell_notes" else "threaded comment"
+                            yield Chunk(source, f"sheet {sheet_name} {label} {address}", content)
+                            kind_counts[kind][1] += 1
+                        element.clear()
+        for part in names - linked:
+            lower = part.lower()
+            if lower.startswith("xl/comments/") and lower.endswith(".xml"):
+                kind_counts["cell_notes"][0] += 1  # Unlinked part; don't claim it was read.
+            elif lower.startswith("xl/threadedcomments/") and lower.endswith(".xml"):
+                kind_counts["threaded_comments"][0] += 1
+    if coverage is not None:
+        for kind, label in (("cell_notes", "엑셀 셀 메모"),
+                            ("threaded_comments", "엑셀 대화형 댓글")):
+            detected, extracted = kind_counts[kind]
+            coverage["supplemental"].append({"kind": kind, "label": label,
+                "detected": detected, "extracted": extracted,
+                "status": "absent" if not detected else "complete" if detected == extracted else "partial"})
+
+
+def _xlsx_chunks(source: str, path: Path, coverage: dict | None = None):
     """Read cached values and formulas with sheet/row/column provenance."""
     values_book = load_workbook(path, read_only=True, data_only=True, keep_links=False)
     formulas_book = load_workbook(path, read_only=True, data_only=False, keep_links=False)
@@ -226,6 +331,13 @@ def _xlsx_chunks(source: str, path: Path):
     finally:
         values_book.close()
         formulas_book.close()
+    try:
+        yield from _xlsx_comments(source, path, coverage)
+    except (KeyError, OSError, ValueError, ET.ParseError) as exc:
+        if coverage is not None:
+            coverage["supplemental"].append({"kind": "spreadsheet_comments",
+                "label": "엑셀 메모·댓글", "detected": None, "extracted": 0,
+                "status": "unknown", "detail": f"메모 구조를 읽지 못했습니다: {type(exc).__name__}"})
 
 
 def _docx_chunks(source: str, path: Path):
@@ -271,23 +383,25 @@ def load_folder(root: Path) -> list[Chunk]:
     return [c for c in chunks if c.text.strip()]
 
 
-def load_drive_file(path: Path, source: str) -> list[Chunk]:
+def load_drive_file(path: Path, source: str, coverage: dict | None = None) -> list[Chunk]:
     """Extract one stored original without the legacy folder loader's 2 MB skip.
 
     The worker applies its own explicit byte/chunk limits and reports unsupported
     files. This does not change the old single-user ingestion path.
     """
     suffix = Path(source).suffix.lower()
+    if coverage is not None:
+        coverage.update({"format": suffix, "supplemental": []})
     if suffix == ".csv":
         chunks = _csv_profile(source, path)
     elif suffix in DRIVE_TEXT_EXT:
         chunks = _text_chunks(source, _read_text(path))
     elif suffix == ".pdf":
-        chunks = _pdf_chunks(source, path)
+        chunks = _pdf_chunks(source, path, coverage)
     elif suffix == ".pptx":
-        chunks = _pptx_chunks(source, path)
+        chunks = _pptx_chunks(source, path, coverage)
     elif suffix == ".xlsx":
-        chunks = _xlsx_chunks(source, path)
+        chunks = _xlsx_chunks(source, path, coverage)
     elif suffix == ".docx":
         chunks = _docx_chunks(source, path)
     else:

@@ -8,7 +8,7 @@
     :root{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:#202124;background:#f8fafd}
     *{box-sizing:border-box}body{margin:0}button,input{font:inherit}button{cursor:pointer}
     header{height:72px;display:flex;align-items:center;gap:18px;padding:0 24px;background:#f8fafd}
-    .brand{font-size:23px;font-weight:750;letter-spacing:-.05em;white-space:nowrap}.brand span{color:#26736d}
+    .brand{font-size:23px;font-weight:750;letter-spacing:-.05em;white-space:nowrap}.brand span{color:#26736d}.brand-home{border:0;background:transparent;padding:7px 0;text-align:left}.brand-home:hover{color:#26736d}
     .search{flex:1;max-width:720px;border:0;border-radius:24px;background:#eaf1f5;padding:13px 20px;outline:none}
     .account{margin-left:auto;font-size:13px;color:#5f6368;overflow:hidden;text-overflow:ellipsis}
     main{display:flex;min-height:calc(100vh - 72px)}aside{width:240px;padding:20px 14px;flex:none}
@@ -20,12 +20,9 @@
     .toolbar button:hover,.small:hover{background:#eaf1f5}.crumb{color:#477670;cursor:pointer}.muted{color:#70757a;font-size:13px}
     #sync-status{max-width:520px;margin:-8px 0 22px;padding:12px 15px;border:1px solid #d9e7e4;background:#f3faf8;border-radius:12px;font-size:13px;color:#285e59}
     #sync-status[hidden]{display:none}#sync-status progress{display:block;width:100%;height:9px;margin-top:8px}
-    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin:10px 0 28px}
-    .tile{border:1px solid #dde3e8;background:#f8fafd;border-radius:14px;padding:16px;display:flex;align-items:center;gap:12px;cursor:pointer;min-width:0}
-    .tile:hover{background:#e8f0f4}.tile .name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-    .file-row{display:grid;grid-template-columns:36px minmax(140px,1fr) 110px 125px 135px 138px;gap:8px;align-items:center;padding:10px 12px;border-bottom:1px solid #e7e9ed;font-size:14px}
-    .file-row:hover{background:#f6f9fc}.file-row .name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
-    .actions{display:flex;gap:4px;white-space:nowrap}.actions button{border:0;background:transparent;padding:4px;color:#477670}
+    .breadcrumbs{display:flex;align-items:center;gap:7px;min-height:42px;margin-bottom:18px;overflow-x:auto;white-space:nowrap}.breadcrumbs button{border:0;background:transparent;border-radius:8px;padding:3px 7px;font-size:23px;color:#263238}.breadcrumbs button:hover{background:#edf3f5}.breadcrumbs .separator{color:#777;font-size:20px}.breadcrumbs button[aria-current="page"]{font-weight:600}
+    .list-shell{width:100%;overflow-x:auto}.drive-table{min-width:650px}.drive-row{display:grid;grid-template-columns:minmax(240px,1fr) 175px 125px 150px 48px;align-items:center;gap:12px;min-height:57px;padding:0 12px;border-bottom:1px solid #e7e9ed;font-size:14px}.drive-head{min-height:49px;color:#5f6368;font-weight:600}.drive-row:not(.drive-head):hover{background:#f1f7f8}.drive-row .name-button{border:0;background:transparent;text-align:left;padding:9px 0;min-width:0;display:flex;align-items:center;gap:13px;font-weight:500;color:#202124}.drive-row .name-button:hover{text-decoration:underline}.drive-row .name-text{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.drive-icon{font-size:20px;flex:none}.drive-row .cell{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#5f6368}.sort-button{border:0;background:transparent;padding:10px 0;color:inherit;font-weight:inherit;text-align:left}.sort-button:hover{color:#26736d}.sort-button[aria-sort="ascending"],.sort-button[aria-sort="descending"]{color:#175f59}.row-more{border:0;background:transparent;border-radius:50%;font-size:22px;width:36px;height:36px}.row-more:hover{background:#dce9eb}
+    .popover{position:fixed;z-index:9;min-width:185px;padding:6px;background:white;border:1px solid #dce2e6;border-radius:12px;box-shadow:0 7px 22px #0002}.popover[hidden]{display:none}.popover button{display:block;width:100%;padding:10px 12px;border:0;background:transparent;text-align:left;border-radius:7px}.popover button:hover{background:#edf3f5}.popover .danger{color:#a0352b}
     #auth{max-width:410px;margin:8vh auto;background:white;padding:32px;border-radius:20px;box-shadow:0 8px 35px #203a3a16}
     #auth h1{font-weight:700}#auth input{display:block;width:100%;padding:13px;margin:12px 0;border:1px solid #bbc5cb;border-radius:8px}
     #auth button{padding:11px 15px;border:0;border-radius:9px;background:#26736d;color:white;margin-right:8px}
@@ -39,7 +36,16 @@
     .progress-item{font-size:12px;padding:10px 0;border-bottom:1px solid #edf0f2;min-width:0}
     .progress-item .file-label{overflow-wrap:anywhere;line-height:1.4}.progress-item .file-state{color:#70757a;margin-top:3px}
     .progress-item progress{width:100%;height:7px;margin-top:5px}
-    @media(max-width:720px){aside{width:75px}.side,.primary{font-size:0;padding:12px}.side:before{content:'📁';font-size:20px}.primary:before{content:'+';font-size:24px}.file-row{grid-template-columns:28px minmax(90px,1fr) 80px}.file-row>:nth-child(3),.file-row>:nth-child(4),.file-row>:nth-child(5){display:none}section{padding:20px 12px}}
+    .activity-form{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0}.activity-form input{padding:9px 12px;border:1px solid #bbc5cb;border-radius:9px;min-width:180px;flex:1}
+    .activity-row{padding:12px 0;border-bottom:1px solid #e7e9ed;display:flex;align-items:center;justify-content:space-between;gap:10px}.activity-row button{flex:none}
+    #activity-files .activity-row{font-size:14px}.activity-actions{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
+    section[hidden]{display:none}.workspace-title{font-size:25px;font-weight:600;margin:0 0 8px}.workspace-note{color:#5f6368;font-size:14px;margin:0 0 24px}.workspace-card{max-width:960px;border:1px solid #e3e8ea;border-radius:16px;padding:20px;margin:16px 0;background:#fff}.field-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.field{display:flex;flex-direction:column;gap:5px;font-size:13px;color:#5f6368}.field input,.field textarea,.field select,.chat-composer textarea,.essay-revise textarea{border:1px solid #cbd5da;border-radius:9px;padding:10px 12px;background:white;color:#202124;width:100%;font:inherit}.field textarea{min-height:100px;resize:vertical}.field.wide{grid-column:1/-1}.workspace-action{border:0;background:#26736d;color:white;border-radius:9px;padding:10px 16px;margin-top:16px}.workspace-action:disabled{opacity:.55}.chat-layout{display:grid;grid-template-columns:220px minmax(0,1fr);gap:18px;max-width:1150px}.chat-sessions{border:1px solid #e3e8ea;border-radius:14px;padding:12px;min-height:520px}.chat-sessions button{width:100%;border:0;background:transparent;text-align:left;border-radius:8px;padding:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.chat-sessions button:hover,.chat-sessions button.active{background:#e4f1ef}.chat-panel{border:1px solid #e3e8ea;border-radius:14px;display:flex;flex-direction:column;min-height:550px;max-height:70vh}.chat-tools{padding:13px;border-bottom:1px solid #e3e8ea;display:flex;gap:9px;align-items:center;flex-wrap:wrap}.chat-tools select{padding:8px;border:1px solid #cbd5da;border-radius:8px;max-width:380px}.chat-log{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}.chat-bubble{max-width:84%;padding:11px 14px;border-radius:13px;white-space:pre-wrap;line-height:1.6}.chat-bubble.user{align-self:flex-end;background:#d7eae6}.chat-bubble.assistant{align-self:flex-start;background:#f0f3f5}.citation-list{max-width:84%;font-size:12px;color:#5f6368}.citation-list button{border:0;background:transparent;color:#26736d;text-decoration:underline;margin:3px 8px 3px 0}.chat-composer{display:flex;gap:8px;padding:12px;border-top:1px solid #e3e8ea}.chat-composer textarea{min-height:58px;resize:vertical}.chat-composer button{border:0;border-radius:9px;padding:0 18px;background:#26736d;color:white}.essay-layout{display:grid;grid-template-columns:220px minmax(0,1fr);gap:18px;max-width:1150px}.essay-list{border:1px solid #e3e8ea;border-radius:14px;padding:10px}.essay-list button{display:block;width:100%;border:0;background:transparent;padding:10px;text-align:left;border-radius:8px}.essay-list button:hover{background:#edf3f5}.essay-draft{white-space:pre-wrap;line-height:1.75;min-height:120px}.essay-revise textarea{min-height:75px}.preview-tabs{display:flex;gap:7px;margin:10px 0}.preview-tabs button{border:1px solid #cbd5da;background:white;border-radius:9px;padding:8px 12px}.preview-tabs button.active{background:#dcefed;border-color:#26736d}.original-frame{width:100%;height:58vh;border:1px solid #e3e8ea;border-radius:9px}.preview-hint{padding:18px;background:#f4f7f8;border-radius:9px}
+    .chat-composer button{white-space:nowrap;min-width:76px}
+    @media(max-width:720px){header{padding:0 12px;gap:8px}.brand{font-size:18px}.account{display:none}aside{width:75px}.side,.primary{font-size:0;padding:12px}.side:before{content:'▣';font-size:20px}.primary:before{content:'+';font-size:24px}section{padding:20px 12px}.breadcrumbs button{font-size:19px}.toolbar{gap:5px}}
+    @media(max-width:850px){.chat-layout,.essay-layout{grid-template-columns:1fr}.chat-sessions{min-height:auto;max-height:150px;overflow-y:auto}.field-grid{grid-template-columns:1fr}}
+    .read-card-sample{display:block;width:100%;padding:10px 12px;margin:6px 0;text-align:left;line-height:1.5;border:1px solid #dce5e7;border-radius:9px;background:#fff;color:#202124;cursor:pointer;overflow-wrap:anywhere}.read-card-sample:hover{background:#eef7f5}.read-card-chunk{padding:14px;background:#f7f9fa;border:1px solid #e1e7e9;border-radius:9px;white-space:pre-wrap;overflow-wrap:anywhere;max-height:340px;overflow:auto}
+    .activity-suggestion{padding:10px 0;border-top:1px solid #e1e7e9}.activity-suggestion summary{cursor:pointer;font-weight:600}.activity-suggestion>input,.activity-suggestion>select{padding:8px;margin:8px 8px 8px 0;max-width:100%;border:1px solid #cbd5da;border-radius:8px}.suggestion-files{max-height:220px;overflow:auto;padding:8px;border:1px solid #e1e7e9;border-radius:8px;margin:8px 0}.suggestion-files label{display:block;padding:4px 0;overflow-wrap:anywhere}
+    .activity-fact{padding:13px;margin:12px 0;border:1px solid #d9e3e5;border-radius:11px;line-height:1.5}.activity-fact blockquote{margin:10px 0;padding:8px 13px;border-left:3px solid #9abfba;background:#f5f9f8;overflow-wrap:anywhere}.activity-fact input,.activity-fact select{padding:8px;margin:4px;border:1px solid #cbd5da;border-radius:8px;max-width:100%}.activity-fact input{min-width:250px;max-width:95%}.activity-fact button{margin:4px}
   </style>
 </head>
 <body>
@@ -52,12 +58,16 @@
     <p id="auth-error" role="status" aria-live="polite" style="min-height:22px;color:#a0352b;font-size:14px"></p>
   </div>
   <div id="app" hidden>
-    <header><div class="brand"><span>SKIVE</span> Drive</div><input id="search" class="search" placeholder="내 드라이브에서 검색"><div id="account" class="account"></div><button id="signout" class="small">로그아웃</button></header>
-    <main><aside><button id="new-menu" class="primary">＋ 새로 만들기</button><button id="home" class="side active">내 드라이브</button><button id="refresh" class="side">새로고침</button></aside>
-    <section><h1 id="heading">내 드라이브</h1><div class="toolbar"><button id="new-folder">새 폴더</button><button id="upload-files">파일 업로드</button><button id="upload-folder">폴더 업로드</button><button id="folder-summary" hidden>이 폴더 경험 초안</button><span class="muted" id="count"></span></div>
+    <header><button id="brand-home" class="brand brand-home" type="button" title="내 드라이브 처음으로"><span>SKIVE</span> Drive</button><input id="search" class="search" placeholder="내 드라이브에서 검색" aria-label="내 드라이브 검색"><div id="account" class="account"></div><button id="signout" class="small">로그아웃</button></header>
+    <main><aside><button id="new-menu" class="primary">＋ 새로 만들기</button><button id="home" class="side active">내 드라이브</button><button id="nav-profile" class="side">프로필</button><button id="nav-chat" class="side">챗봇</button><button id="nav-essays" class="side">자소서</button><button id="refresh" class="side">새로고침</button></aside>
+    <section id="drive-section"><nav id="breadcrumbs" class="breadcrumbs" aria-label="폴더 경로"></nav><div class="toolbar"><button id="new-folder">새 폴더</button><button id="upload-files">파일 업로드</button><button id="upload-folder">폴더 업로드</button><button id="open-activities">활동 카드</button><button id="chat-current-folder" hidden>이 폴더로 대화</button><span class="muted" id="count"></span></div>
     <div id="sync-status" hidden><span id="sync-label"></span><progress id="sync-progress" max="100" value="0"></progress></div>
-    <div id="folders" class="grid"></div><div id="files"></div><p id="empty" class="muted" hidden>이 폴더는 비어 있습니다. 파일이나 폴더를 추가해 보세요.</p></section></main>
+    <div class="list-shell"><div class="drive-table" role="table" aria-label="드라이브 파일 목록"><div class="drive-row drive-head" role="row"><button class="sort-button" data-sort="name" aria-sort="ascending">이름 ↑</button><button class="sort-button" data-sort="date">수정 날짜</button><button class="sort-button" data-sort="size">파일 크기</button><span>읽기 상태</span><span aria-label="더보기"></span></div><div id="items" role="rowgroup"></div></div></div><p id="empty" class="muted" hidden>이 폴더는 비어 있습니다. 파일이나 폴더를 추가해 보세요.</p></section>
+    <section id="profile-section" hidden><h1 class="workspace-title">내 프로필</h1><p class="workspace-note">여기에 적은 내용은 본인 진술로 저장됩니다. 파일에서 확인된 사실과 구분해서 사용합니다.</p><div class="workspace-card"><div class="field-grid"><label class="field">이름<input id="profile-name" maxlength="100"></label><label class="field">학교<input id="profile-school" maxlength="200"></label><label class="field">전공<input id="profile-major" maxlength="200"></label><label class="field">학년·시기<input id="profile-grade" maxlength="100"></label><label class="field wide">진로 목표<textarea id="profile-goal" maxlength="3000"></textarea></label><label class="field wide">내가 직접 적는 경험 메모<textarea id="profile-notes" maxlength="10000" placeholder="본인 역할이나 경험을 적어주세요. 자료 근거가 확인되기 전에는 본인 진술로 표시됩니다."></textarea></label><label class="field wide">자소서 문체 지침<textarea id="profile-style" maxlength="3000" placeholder="비우면 기본 문체를 사용합니다."></textarea></label></div><button id="profile-save" class="workspace-action">프로필 저장</button></div><div class="workspace-card"><h2>내 활동과 자료</h2><p class="muted">자료가 연결된 활동 목차입니다. 강점·성과로 확정된 내용은 아닙니다.</p><div id="profile-activities"></div></div></section>
+    <section id="chat-section" hidden><h1 class="workspace-title">자료와 대화</h1><p class="workspace-note">전체 드라이브를 검색하거나 폴더 범위를 좁힐 수 있습니다. 답변의 출처를 눌러 원문 추출 위치를 확인하세요.</p><div class="chat-layout"><div class="chat-sessions"><button id="chat-new">＋ 새 대화</button><div id="chat-session-list"></div></div><div class="chat-panel"><div class="chat-tools"><span>자료 범위</span><select id="chat-scope" aria-label="대화 자료 범위"><option value="">전체 드라이브</option></select><span id="chat-scope-note" class="muted">범위를 선택하고 새 대화를 시작하세요.</span></div><div id="chat-log" class="chat-log"><p class="muted">내 자료에 대해 질문하거나 BOM·CAPA 같은 개념을 물어보세요.</p></div><div class="chat-composer"><textarea id="chat-input" placeholder="예: 3학년 SCM 수업에서 BOM은 무엇을 배웠지?"></textarea><button id="chat-send">보내기</button></div></div></div></section>
+    <section id="essays-section" hidden><h1 class="workspace-title">자소서 작성</h1><p class="workspace-note">공고와 문항을 붙이면 로그인 계정의 읽힌 파일에서 관련 근거를 찾아 초안을 만듭니다. 본인 역할과 문장별 출처는 반드시 확인하세요.</p><div class="essay-layout"><div class="essay-list"><strong>저장된 초안</strong><div id="essay-list"></div></div><div><div class="workspace-card" style="margin-top:0"><div class="field-grid"><label class="field wide">공고 내용<textarea id="essay-job" style="min-height:130px" placeholder="회사·직무·요구사항을 붙여 넣으세요."></textarea></label><label class="field wide">자소서 문항<textarea id="essay-question" placeholder="예: 본인의 강점이 드러난 경험을 서술하세요."></textarea></label><label class="field wide">참고 자료 범위<select id="essay-scope"><option value="">전체 드라이브</option></select></label></div><button id="essay-create" class="workspace-action">근거 찾아 초안 만들기</button></div><div class="workspace-card"><h2 id="essay-title" style="margin-top:0">초안을 선택하거나 새로 만드세요</h2><p class="muted">AI 초안 · 본인 역할과 수치 확인 필요</p><div id="essay-draft" class="essay-draft"></div><div id="essay-sources" class="citation-list"></div><div class="essay-revise"><textarea id="essay-instruction" placeholder="예: 첫 문단을 더 간결하게 고쳐줘"></textarea><button id="essay-revise" class="workspace-action" disabled>대화하듯 수정하기</button></div></div></div></div></section></main>
   </div>
+  <div id="row-menu" class="popover" hidden></div><div id="new-popover" class="popover" hidden><button id="menu-new-folder">새 폴더</button><button id="menu-upload-files">파일 업로드</button><button id="menu-upload-folder">폴더 업로드</button></div>
   <input id="file-input" type="file" multiple hidden><input id="folder-input" type="file" webkitdirectory multiple hidden>
   <div id="message"></div>
   <div id="progress" role="status" aria-live="polite">
@@ -66,15 +76,17 @@
     <div id="upload-detail">0 B / 0 B</div>
     <div id="progress-list"></div>
   </div>
-  <dialog id="analysis-dialog" style="width:min(850px,95vw);max-height:85vh;border:0;border-radius:16px;box-shadow:0 10px 40px #0004"><button id="close-analysis" class="small" style="float:right">닫기</button><h2 id="analysis-title"></h2><pre id="analysis-text" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre></dialog>
-  <dialog id="summary-dialog" style="width:min(850px,95vw);max-height:85vh;border:0;border-radius:16px;box-shadow:0 10px 40px #0004"><button id="close-summary" class="small" style="float:right">닫기</button><h2 id="summary-title">폴더 경험 초안</h2><p class="muted">AI가 선택한 원문을 바탕으로 작성합니다. 문장별 출처와 본인 기여 확인 상태를 검토하세요.</p><button id="request-summary" class="small">초안 만들기 / 다시 만들기</button><pre id="summary-text" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre></dialog>
+  <dialog id="analysis-dialog" style="width:min(950px,95vw);max-height:90vh;border:0;border-radius:16px;box-shadow:0 10px 40px #0004"><button id="close-analysis" class="small" style="float:right">닫기</button><h2 id="analysis-title"></h2><div class="preview-tabs"><button id="preview-original" class="active">원본 보기</button><button id="preview-extracted">AI가 읽은 텍스트</button><button id="download-original">원본 다운로드</button></div><div id="original-panel"><p id="original-hint" class="preview-hint"></p><iframe id="original-frame" class="original-frame" title="원본 파일 미리보기" hidden></iframe></div><div id="extracted-panel" hidden><p class="muted">아래 내용은 원본에서 추출한 위치 색인과 텍스트입니다. AI 요약본이나 확인된 개인 경험이 아닙니다.</p><button id="reanalyze-file" class="small" type="button" style="margin:0 0 12px">다시 읽기</button><div id="analysis-coverage" style="padding:12px 15px;border:1px solid #d9e7e4;background:#f3faf8;border-radius:12px;line-height:1.7"></div><pre id="analysis-text" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre></div></dialog>
+  <dialog id="activities-dialog" style="width:min(680px,95vw);max-height:85vh;border:0;border-radius:16px;box-shadow:0 10px 40px #0004"><button id="close-activities" class="small" style="float:right">닫기</button><h2 id="activities-title">내 활동 카드</h2><p class="muted">수업·팀 프로젝트·개인 프로젝트를 폴더와 별도로 묶습니다. 아직 경험 사실을 확정하는 단계는 아닙니다.</p><div class="activity-form"><input id="activity-name" placeholder="활동 이름 (예: SCM 수업)"><input id="activity-tags" placeholder="분류 (쉼표로 구분, 예: 수업, 팀 프로젝트)"><button id="create-activity" class="small">활동 만들기</button></div><div id="activity-list"></div></dialog>
+  <dialog id="activity-detail-dialog" style="width:min(850px,95vw);max-height:85vh;border:0;border-radius:16px;box-shadow:0 10px 40px #0004"><button id="close-activity-detail" class="small" style="float:right">닫기</button><h2 id="activity-detail-title"></h2><p class="muted">연결된 파일의 자료 목차입니다. 본인 역할·성과는 아직 확인되지 않았습니다.</p><div class="activity-actions"><button id="activity-edit" class="small">이름·분류 수정</button><button id="activity-link-folder" class="small">현재 폴더 파일 연결</button><button id="activity-download" class="small">목차 MD 다운로드</button></div><div id="activity-files"></div><h3>자료 목차 미리보기</h3><pre id="activity-markdown" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre></dialog>
   <dialog id="move-dialog" style="width:min(480px,95vw);border:0;border-radius:16px;box-shadow:0 10px 40px #0004"><h2>이동할 폴더</h2><div id="move-path" class="muted"></div><div id="move-list"></div><div style="margin-top:20px;display:flex;gap:8px"><button id="move-select" class="small">여기로 이동</button><button id="move-cancel" class="small">취소</button></div></dialog>
   <script src="/assets/tus-4.3.1.min.js"></script>
   <script type="module">
     import {createClient} from 'https://esm.sh/@supabase/supabase-js@2';
+    import {initCareerUI} from '/assets/career-ui.js';
     const tus=window.tus;
     const el = id => document.getElementById(id);
-    let cfg, supabase, session, current = null, trail = [], searchMode = false;
+    let cfg, supabase, session, current = null, trail = [], searchMode = false, visibleItems={folders:[],files:[]}, sortKey='name', sortDirection=1;
     function authStatus(message, isError=false){const box=el('auth-error');box.textContent=message;box.style.color=isError?'#a0352b':'#26736d'}
     function authErrorMessage(error){
       const message=error?.message||String(error);
@@ -87,7 +99,19 @@
     function notice(message){const box=el('message');box.textContent=message;box.style.display='block';setTimeout(()=>box.style.display='none',5000)}
     function clear(node){node.replaceChildren()}
     function button(label, fn){const b=document.createElement('button');b.textContent=label;b.onclick=fn;return b}
-    async function openFolder(id){trail=await api('/folders/'+id+'/breadcrumbs');current=id;await show()}
+    async function openFolder(id){trail=await api('/folders/'+id+'/breadcrumbs');current=id;el('search').value='';showTab('drive');await show()}
+    async function goHome(){current=null;trail=[];el('search').value='';showTab('drive');await show()}
+    function renderBreadcrumbs(query=''){
+      const nav=el('breadcrumbs');clear(nav);
+      const segments=[{id:null,name:'내 드라이브'},...trail];
+      for(const [index,part] of segments.entries()){
+        if(index){const separator=document.createElement('span');separator.className='separator';separator.textContent='›';nav.append(separator)}
+        const crumb=button(part.name,()=>part.id?openFolder(part.id).catch(fail):goHome().catch(fail));
+        if(index===segments.length-1&&!query)crumb.setAttribute('aria-current','page');
+        crumb.title=part.name;nav.append(crumb);
+      }
+      if(query){const separator=document.createElement('span');separator.className='separator';separator.textContent='›';nav.append(separator);const label=document.createElement('span');label.textContent='검색: '+query;label.style.fontSize='20px';nav.append(label)}
+    }
     async function pickFolder(){return new Promise(async resolve=>{
       const dialog=el('move-dialog');let selected=null;let path=[];
       async function browse(id){selected=id;path=id?await api('/folders/'+id+'/breadcrumbs'):[];el('move-path').textContent=path.length?path.map(x=>x.name).join(' › '):'내 드라이브';
@@ -99,16 +123,22 @@
       el('move-select').onclick=()=>finish(selected);el('move-cancel').onclick=()=>finish(undefined);dialog.oncancel=e=>{e.preventDefault();finish(undefined)};
       try{await browse(null);dialog.showModal()}catch(err){fail(err);resolve(undefined)}
     })}
-    async function api(path, options={}){
+    async function requestApi(prefix,path, options={}){
       const {data:{session:live}}=await supabase.auth.getSession();
       if(!live)throw new Error('로그인이 필요합니다');
-      const response=await fetch('/api/drive'+path,{...options,headers:{'Content-Type':'application/json',Authorization:'Bearer '+live.access_token,...options.headers}});
+      const response=await fetch('/api/'+prefix+path,{...options,headers:{'Content-Type':'application/json',Authorization:'Bearer '+live.access_token,...options.headers}});
       const data=await response.json();if(!response.ok)throw new Error(typeof data.detail==='string'?data.detail:JSON.stringify(data.detail));return data;
     }
+    const api=(path,options={})=>requestApi('drive',path,options);
+    const workspace=(path,options={})=>requestApi('workspace',path,options);
+    const career=(path,options={})=>requestApi('career',path,options);
+    const careerUI=initCareerUI({main:document.querySelector('main'),request:career,showAnalysis,fail,notice});
+    const memoryPanel=document.createElement('div');memoryPanel.className='workspace-card';
+    memoryPanel.innerHTML='<h2>내가 확인한 경험 메모</h2><p class="muted">직접 말한 내용은 본인 진술로 저장됩니다. 파일에서 확인된 사실과 구분해 사용합니다.</p><label class="field">경험·역할 메모<textarea id="profile-memory-input" maxlength="4000" placeholder="예: KT 프로젝트에서 저는 데이터 전처리를 맡았습니다."></textarea></label><button id="profile-memory-save" class="workspace-action">본인 진술로 저장</button><div id="profile-memory-list"></div>';
+    el('profile-section').append(memoryPanel);
     async function show(){
       const data=await api('/items'+(current?'?parent_id='+current:''));searchMode=false;
-      render(data);el('heading').textContent=trail.length?trail.map((p,i)=>p.name).join('  ›  '):'내 드라이브';
-      el('folder-summary').hidden=!current;
+      renderBreadcrumbs();render(data);el('chat-current-folder').hidden=!current;
     }
     async function refreshSummary(){
       if(!session)return;
@@ -128,59 +158,236 @@
       }
       return pendingUpload+pendingAnalysis;
     }
-    function render(data){
-      clear(el('folders'));clear(el('files'));el('count').textContent=`${data.folders.length}개 폴더 · ${data.files.length}개 파일`;
-      el('empty').hidden=!!(data.folders.length||data.files.length);
-      if(trail.length&&!searchMode){const up=document.createElement('div');up.className='tile';up.textContent='↰  상위 폴더';up.onclick=()=>{trail.pop();current=trail.at(-1)?.id||null;show().catch(fail)};el('folders').append(up)}
-      for(const f of data.folders){
-        const tile=document.createElement('div');tile.className='tile';
-        const name=document.createElement('span');name.className='name';name.textContent='📁  '+f.name;name.title=f.name;
-        name.onclick=()=>openFolder(f.id).catch(fail);
-        const more=button('⋮',async e=>{e.stopPropagation();const action=prompt('폴더: 이름 변경은 r, 이동은 m, 휴지통은 d');if(!action)return;
-          try{if(action==='r'){const n=prompt('새 이름',f.name);if(n)await api('/folders/'+f.id,{method:'PATCH',body:JSON.stringify({name:n})})}
-          if(action==='m'){const id=await pickFolder();if(id!==undefined)await api('/folders/'+f.id+'/move',{method:'POST',body:JSON.stringify({parent_id:id})})}
-          if(action==='d'&&confirm('폴더를 휴지통으로 이동할까요?'))await api('/folders/'+f.id,{method:'DELETE'});await show()}catch(err){fail(err)}});
-        const summary=button('경험 초안',e=>{e.stopPropagation();showSummary(f.id,f.name).catch(fail)});
-        summary.className='small';summary.title='폴더 자료로 출처가 붙은 경험 초안 만들기';
-        tile.append(name,summary,more);el('folders').append(tile);
+    function closePopovers(){el('row-menu').hidden=true;el('new-popover').hidden=true}
+    function showPopover(menu,anchor){closePopovers();const rect=anchor.getBoundingClientRect();menu.hidden=false;menu.style.top=Math.min(rect.bottom+4,innerHeight-menu.offsetHeight-8)+'px';menu.style.left=Math.max(8,Math.min(rect.left,innerWidth-menu.offsetWidth-8))+'px'}
+    function rowMenu(kind,item,anchor){
+      const menu=el('row-menu');clear(menu);
+      const add=(label,action,danger=false)=>{const choice=button(label,async()=>{closePopovers();try{await action()}catch(error){fail(error)}});if(danger)choice.className='danger';menu.append(choice)};
+      if(kind==='file'){
+        add('원문·읽기 상태',()=>showAnalysis(item));add('활동 카드에 연결',()=>showActivities(item.id));
+        if(item.upload_status==='uploaded')add('다운로드',()=>download(item));
       }
-      for(const f of data.files){
-        const row=document.createElement('div');row.className='file-row';
-        const icon=document.createElement('span');icon.textContent='📄';
-        const name=document.createElement('span');name.className='name';name.textContent=f.name;name.title=f.name;
-        name.onclick=()=>download(f).catch(fail);
-        const size=document.createElement('span');size.className='muted';size.textContent=formatSize(f.size_bytes);
-        const date=document.createElement('span');date.className='muted';date.textContent=new Date(f.updated_at).toLocaleDateString('ko-KR');
-        const state=document.createElement('span');state.className='muted';state.textContent=f.upload_status==='pending'?'업로드 대기':({queued:'텍스트 추출 대기',processing:'텍스트 추출 중',ready:'텍스트 추출 완료',unsupported:'추출 미지원',failed:'추출 실패'}[f.analysis_status]||f.analysis_status);
-        const actions=document.createElement('span');actions.className='actions';actions.append(button('원문/색인',()=>showAnalysis(f).catch(fail)),button('↓',()=>download(f).catch(fail)),button('⋮',async()=>{
-          const action=prompt('파일: 이름 변경은 r, 이동은 m, 휴지통은 d');if(!action)return;
-          try{if(action==='r'){const n=prompt('새 이름',f.name);if(n)await api('/files/'+f.id,{method:'PATCH',body:JSON.stringify({name:n})})}
-          if(action==='m'){const id=await pickFolder();if(id!==undefined)await api('/files/'+f.id+'/move',{method:'POST',body:JSON.stringify({parent_id:id})})}
-          if(action==='d'&&confirm('파일을 휴지통으로 이동할까요?'))await api('/files/'+f.id,{method:'DELETE'});await show()}catch(err){fail(err)}
-        }));row.append(icon,name,size,date,state,actions);el('files').append(row);
+      add('이름 변경',async()=>{const name=prompt('새 이름',item.name);if(name&&name!==item.name){await api(`/${kind}s/${item.id}`,{method:'PATCH',body:JSON.stringify({name})});await show()}});
+      add('이동',async()=>{const id=await pickFolder();if(id!==undefined){await api(`/${kind}s/${item.id}/move`,{method:'POST',body:JSON.stringify({parent_id:id})});await show()}});
+      add('휴지통으로 이동',async()=>{if(confirm(`${item.name}을(를) 휴지통으로 이동할까요?`)){await api(`/${kind}s/${item.id}`,{method:'DELETE'});await show()}},true);
+      showPopover(menu,anchor);
+    }
+    function sortedItems(data){
+      const collator=new Intl.Collator('ko',{numeric:true,sensitivity:'base'});
+      const rows=[...data.folders.map(item=>({kind:'folder',item})),...data.files.map(item=>({kind:'file',item}))];
+      rows.sort((a,b)=>{
+        if(a.kind!==b.kind)return a.kind==='folder'?-1:1;
+        const av=sortKey==='name'?a.item.name:sortKey==='date'?Date.parse(a.item.updated_at||0)||0:a.item.size_bytes??-1;
+        const bv=sortKey==='name'?b.item.name:sortKey==='date'?Date.parse(b.item.updated_at||0)||0:b.item.size_bytes??-1;
+        const difference=typeof av==='string'?collator.compare(av,bv):av-bv;
+        return difference*sortDirection||collator.compare(a.item.name,b.item.name);
+      });return rows;
+    }
+    function render(data){
+      visibleItems=data;clear(el('items'));el('count').textContent=`${data.folders.length}개 폴더 · ${data.files.length}개 파일`;
+      el('empty').hidden=!!(data.folders.length||data.files.length);
+      for(const heading of document.querySelectorAll('.sort-button')){const active=heading.dataset.sort===sortKey;heading.setAttribute('aria-sort',active?(sortDirection===1?'ascending':'descending'):'none');heading.textContent=({name:'이름',date:'수정 날짜',size:'파일 크기'})[heading.dataset.sort]+(active?(sortDirection===1?' ↑':' ↓'):'')}
+      for(const {kind,item} of sortedItems(data)){
+        const row=document.createElement('div');row.className='drive-row';row.setAttribute('role','row');row.dataset.kind=kind;row.dataset.id=item.id;
+        const name=button('',()=>kind==='folder'?openFolder(item.id).catch(fail):showAnalysis(item).catch(fail));name.className='name-button';name.title=item.name;
+        const icon=document.createElement('span');icon.className='drive-icon';icon.textContent=kind==='folder'?'📁':'📄';
+        const label=document.createElement('span');label.className='name-text';label.textContent=item.name;name.append(icon,label);
+        const date=document.createElement('span');date.className='cell';date.textContent=item.updated_at?new Date(item.updated_at).toLocaleDateString('ko-KR'):'—';
+        const size=document.createElement('span');size.className='cell';size.textContent=kind==='folder'?'—':formatSize(item.size_bytes||0);
+        const status=document.createElement('span');status.className='cell';status.textContent=kind==='folder'?'폴더':item.upload_status==='pending'?'업로드 대기':({queued:'읽기 대기',processing:'읽는 중',ready:'원문 읽음',unsupported:'읽기 미지원',failed:'읽기 실패'})[item.analysis_status]||item.analysis_status||'—';
+        const more=button('⋮',()=>rowMenu(kind,item,more));more.className='row-more';more.setAttribute('aria-label',item.name+' 더보기');
+        row.append(name,date,size,status,more);el('items').append(row);
       }
     }
     function formatSize(bytes){if(bytes<1024)return bytes+' B';const unit=Math.floor(Math.log(bytes)/Math.log(1024));return (bytes/1024**unit).toFixed(1)+' '+['B','KB','MB','GB','TB'][unit]}
     async function download(f){if(f.upload_status!=='uploaded')throw new Error('업로드가 아직 끝나지 않았습니다');
       const {data,error}=await supabase.storage.from(cfg.bucket).createSignedUrl(f.storage_path,60,{download:f.name});if(error)throw error;window.location.href=data.signedUrl}
-    async function showAnalysis(f){const result=await api('/files/'+f.id+'/analysis');el('analysis-title').textContent=result.name;
-      const preview=(result.preview_chunks||[]).map(chunk=>`[${chunk.location}]\n${chunk.text}`).join('\n\n');
+    function renderAnalysisCoverage(result){
+      const box=el('analysis-coverage');clear(box);
+      const title=document.createElement('strong');title.textContent='읽기 범위';box.append(title);
+      const details=result.analysis_coverage?.supplemental;
+      const lines=result.analysis_status!=='ready'?[`현재 상태: ${result.analysis_status}. 추출 완료 후 범위를 확인할 수 있습니다.`]:
+        !Array.isArray(details)?['이 파일은 세부 범위 기록을 추가하기 전에 추출됐습니다. 다시 추출하면 주석·노트 검사 결과가 표시됩니다.']:
+        details.length?details.map(item=>{
+          if(item.status==='absent')return `${item.label}: 발견되지 않음 (검사함)`;
+          if(item.status==='complete')return `${item.label}: ${item.extracted}개 발견·읽음`;
+          if(item.status==='partial')return `${item.label}: ${item.detected}개 중 ${item.extracted}개 읽음 · 나머지 내용 미확인`;
+          return `${item.label}: 검사 불완전${item.detail?' · '+item.detail:''}`;
+        }):['이 형식에는 별도로 검사할 PDF 주석·PPT 노트·엑셀 메모가 없습니다.'];
+      for(const line of lines){const row=document.createElement('div');row.textContent=line;box.append(row)}
+      const caution=document.createElement('div');caution.className='muted';caution.textContent='읽은 텍스트는 원문 색인입니다. 프로젝트 사실이나 본인 기여 확인은 별도 단계입니다.';box.append(caution);
+    }
+    const readCardButton=document.createElement('button');readCardButton.id='preview-read-card';readCardButton.type='button';readCardButton.textContent='읽기 카드';
+    el('preview-extracted').after(readCardButton);
+    const readCardPanel=document.createElement('div');readCardPanel.id='read-card-panel';readCardPanel.hidden=true;
+    readCardPanel.innerHTML='<p class="muted">파일에서 추출한 문장과 수치의 위치 색인입니다. 수치가 성과인지, 누가 수행했는지는 아직 확인되지 않았습니다.</p><div id="read-card-status" class="preview-hint"></div><h3>대표 문장</h3><div id="read-card-quotes"></div><h3>발견한 수치</h3><div id="read-card-numbers"></div><h3>원문 구간 전체</h3><div id="read-card-chunks"></div><button id="read-card-more" class="small" type="button" hidden>다음 구간 보기</button>';
+    el('extracted-panel').after(readCardPanel);
+    let currentReadFile=null,readAfter=0,readLoading=false;
+    function setPreviewTab(which){for(const name of ['original','extracted','read-card']){el(name+'-panel').hidden=which!==name;el('preview-'+name).classList.toggle('active',which===name)}}
+    function addReadSample(container,item){const row=document.createElement('button');row.type='button';row.className='read-card-sample';row.textContent=`C${item.chunk_index} · ${item.location} — ${item.quote}`;row.onclick=()=>showReadChunk(item.chunk_index).catch(fail);container.append(row)}
+    async function showReadChunk(index){if(!currentReadFile)return;const data=await api(`/files/${currentReadFile}/read-card/chunks?after=${index-1}&limit=1`);const chunk=data.chunks[0];if(!chunk)return;const box=el('read-card-chunks');const detail=document.createElement('pre');detail.className='read-card-chunk';detail.textContent=`[C${chunk.chunk_index} · ${chunk.location}]\n${chunk.text}`;box.prepend(detail);detail.scrollIntoView({block:'nearest'})}
+    async function loadReadChunks(reset=false){if(!currentReadFile||readLoading)return;readLoading=true;try{if(reset){readAfter=0;el('read-card-chunks').replaceChildren()}const data=await api(`/files/${currentReadFile}/read-card/chunks?after=${readAfter}&limit=20`);for(const chunk of data.chunks){const item=document.createElement('pre');item.className='read-card-chunk';item.textContent=`[C${chunk.chunk_index} · ${chunk.location}]\n${chunk.text}`;el('read-card-chunks').append(item)}readAfter=data.next_after||0;el('read-card-more').hidden=!data.next_after}catch(error){fail(error)}finally{readLoading=false}}
+    async function loadReadCard(){if(!currentReadFile)return;const data=await api(`/files/${currentReadFile}/read-card`);const card=data.card;const status=el('read-card-status');const quotes=el('read-card-quotes'),numbers=el('read-card-numbers');quotes.replaceChildren();numbers.replaceChildren();
+      if(!card){status.textContent=`읽기 상태: ${data.state}${data.file?.analysis_error?' · '+data.file.analysis_error:''}. ${data.state==='building'?'읽기 카드가 준비되면 다시 열어 확인하세요.':''}`;el('read-card-chunks').replaceChildren();el('read-card-more').hidden=true;return}
+      status.textContent=`읽기 상태: ${card.status} · 파일 버전 ${card.file_version} · 추출 구간 ${card.chunk_count}개 · 문장 위치 ${card.quote_count}개 · 수치 언급 ${card.number_count}개${card.error?' · '+card.error:''}. 대표 항목은 앞뒤 최대 40개씩 보여줍니다.`;
+      for(const item of card.quote_samples)addReadSample(quotes,item);for(const item of card.number_samples)addReadSample(numbers,item);
+      if(!card.quote_samples.length)quotes.textContent='추출한 문장이 없습니다.';if(!card.number_samples.length)numbers.textContent='수치 언급이 없습니다.';
+      await loadReadChunks(true)}
+    readCardButton.onclick=()=>{setPreviewTab('read-card');loadReadCard().catch(fail)};
+    el('read-card-more').onclick=()=>loadReadChunks();
+    async function showAnalysis(f){const result=await api('/files/'+f.id+'/analysis');el('analysis-title').textContent=result.name;currentReadFile=f.id;
+      setPreviewTab('original');el('original-frame').hidden=true;el('original-frame').src='';
+      el('download-original').disabled=result.upload_status!=='uploaded';
+      el('download-original').onclick=()=>download(result).catch(fail);
+      if(result.upload_status!=='uploaded')el('original-hint').textContent='원본 업로드가 아직 끝나지 않았습니다.';
+      else if(result.mime_type==='application/pdf'||result.mime_type?.startsWith('image/')){
+        el('original-hint').textContent='원본 파일 미리보기입니다. AI가 읽은 텍스트는 옆 탭에서 확인하세요.';
+        const {data,error}=await supabase.storage.from(cfg.bucket).createSignedUrl(result.storage_path,60);
+        if(error)el('original-hint').textContent='원본 미리보기를 열지 못했습니다. 다운로드를 시도해 주세요.';
+        else{el('original-frame').src=data.signedUrl;el('original-frame').hidden=false}
+      }else el('original-hint').textContent='이 파일 형식은 브라우저 원본 미리보기를 지원하지 않습니다. 원본을 다운로드하거나 「AI가 읽은 텍스트」를 확인하세요.';
+      renderAnalysisCoverage(result);
+      el('reanalyze-file').disabled=f.upload_status!=='uploaded'||['queued','processing'].includes(result.analysis_status);
+      el('reanalyze-file').onclick=async()=>{await api('/files/'+f.id+'/reanalyze',{method:'POST'});notice('다시 읽기 작업을 시작했습니다. 잠시 후 다시 열어 결과를 확인하세요.');await showAnalysis(f)};
+      const preview=(result.preview_chunks||[]).map(chunk=>`[C${chunk.chunk_index} · ${chunk.location}]\n${chunk.text}`).join('\n\n');
+      const seen=new Set((result.preview_chunks||[]).map(chunk=>chunk.chunk_index));
+      const supplemental=(result.supplemental_chunks||[]).filter(chunk=>!seen.has(chunk.chunk_index))
+        .map(chunk=>`[C${chunk.chunk_index} · ${chunk.location}]\n${chunk.text}`).join('\n\n');
       const overview=result.analysis_markdown||result.analysis_error||'텍스트 추출 대기 중입니다.';
-      el('analysis-text').textContent=overview+(preview?'\n\n---\n추출된 원문 미리보기 (최대 12구간)\n\n'+preview:'');
-      el('analysis-dialog').showModal()}
-    let summaryFolder=null;
-    async function showSummary(id,name){summaryFolder={id,name};el('summary-title').textContent=name+' · 경험 초안';
-      const result=await api('/folders/'+id+'/summary');
-      el('summary-text').textContent=result.status==='missing'?'아직 경험 초안을 만들지 않았습니다.':
-        result.status==='queued'?'파일 추출이 끝나면 AI가 경험 초안을 작성합니다. 잠시 뒤 다시 열어 주세요.':
-        result.status==='processing'?'AI가 선택한 파일을 읽고 출처를 검사하는 중입니다.':
-        result.status==='failed'?'초안 생성 실패: '+result.error:
-        (result.stale?'파일이 바뀌어 이전 초안입니다. 다시 만들어 주세요.\n\n':'')+(result.markdown||'초안이 비어 있습니다.');
-      if(!el('summary-dialog').open)el('summary-dialog').showModal()}
+      el('analysis-text').textContent=overview+(preview?'\n\n---\n추출된 원문 미리보기 (최대 12구간)\n\n'+preview:'')
+        +(supplemental?'\n\n---\n주석·노트 미리보기 (최대 20구간)\n\n'+supplemental:'');
+      if(!el('analysis-dialog').open)el('analysis-dialog').showModal()}
+    let activeChatSession=null, activeEssay=null, chatBusy=false, activeTab='drive';
+    function showTab(tab){
+      activeTab=tab;
+      for(const name of ['drive','profile','chat','essays','career'])el(name+'-section').hidden=name!==tab;
+      for(const [name,id] of Object.entries({drive:'home',profile:'nav-profile',chat:'nav-chat',career:'nav-essays'}))el(id).classList.toggle('active',name===tab);
+      if(tab==='profile')loadWorkspaceProfile().catch(fail);
+      if(tab==='chat'){loadScopeOptions().then(loadChatSessions).catch(fail)}
+      if(tab==='essays'){loadScopeOptions().then(loadEssays).catch(fail)}
+      if(tab==='career')careerUI.show().catch(fail);
+    }
+    async function loadWorkspaceProfile(){const p=await workspace('/profile');
+      for(const [key,id] of Object.entries({display_name:'profile-name',school:'profile-school',major:'profile-major',grade:'profile-grade',career_goal:'profile-goal',personal_notes:'profile-notes',essay_style:'profile-style'}))el(id).value=p[key]||'';
+      const activities=await api('/activities'),list=el('profile-activities');clear(list);
+      if(!activities.length){const hint=document.createElement('p');hint.className='muted';hint.textContent='아직 연결된 활동이 없습니다. 드라이브에서 활동 카드를 만들고 파일을 연결해 보세요.';list.append(hint)}
+      for(const item of activities){const row=button(`${item.title} · 파일 ${item.file_count}개 · 읽기 완료 ${item.text_ready_count}개`,()=>showActivity(item.id).catch(fail));row.className='side';list.append(row)}
+      await loadProfileMemory();
+    }
+    async function loadProfileMemory(){const items=await career('/memory'),list=el('profile-memory-list');clear(list);
+      if(!items.length){const hint=document.createElement('p');hint.className='muted';hint.textContent='아직 확인해 저장한 경험 메모가 없습니다.';list.append(hint)}
+      for(const item of items){const row=document.createElement('p');row.className='activity-row';row.textContent=`본인 진술 · ${item.content}`;list.append(row)}
+    }
+    async function loadScopeOptions(){const folders=await workspace('/folders');
+      for(const id of ['chat-scope','essay-scope']){const select=el(id),selected=select.value;clear(select);select.add(new Option('전체 드라이브',''));
+        for(const folder of folders)select.add(new Option(folder.path,folder.id));select.value=selected;if(select.selectedIndex<0)select.value='';}
+    }
+    function renderCitations(container,sources){clear(container);for(const source of sources||[]){
+      const link=button(`[${source.index}] ${source.name} · ${source.location}`,()=>showAnalysis({id:source.file_id,upload_status:'uploaded'}).catch(fail));
+      link.title='파일의 원본과 AI가 읽은 텍스트 열기';container.append(link)
+    }}
+    function appendChat(message){const log=el('chat-log'),bubble=document.createElement('div');bubble.className='chat-bubble '+message.role;bubble.textContent=message.content;log.append(bubble);
+      if(message.role==='assistant'&&message.citations?.length){const links=document.createElement('div');links.className='citation-list';renderCitations(links,message.citations);log.append(links)}
+      log.scrollTop=log.scrollHeight;
+    }
+    async function loadChatSessions(){const sessions=await workspace('/chat/sessions');const list=el('chat-session-list');clear(list);
+      for(const item of sessions){const b=button(item.title,()=>openChatSession(item.id).catch(fail));b.title=item.folder_name?item.folder_name+' 범위':'전체 드라이브';if(item.id===activeChatSession)b.className='active';list.append(b)}
+    }
+    async function openChatSession(id){const result=await workspace('/chat/sessions/'+id);activeChatSession=id;el('chat-scope').value=result.folder_id||'';
+      el('chat-scope-note').textContent=result.folder_id?'선택한 폴더와 하위 폴더만 검색합니다.':'계정의 전체 드라이브에서 검색합니다.';
+      const log=el('chat-log');clear(log);for(const message of result.messages)appendChat(message);await loadChatSessions();
+    }
+    async function newChat(){const result=await workspace('/chat/sessions',{method:'POST',body:JSON.stringify({folder_id:el('chat-scope').value||null})});activeChatSession=result.id;clear(el('chat-log'));await loadChatSessions();return result.id}
+    async function sendChat(){const text=el('chat-input').value.trim();if(!text||chatBusy)return;chatBusy=true;el('chat-send').disabled=true;
+      try{if(!activeChatSession)await newChat();el('chat-input').value='';appendChat({role:'user',content:text});
+        const pending=document.createElement('p');pending.className='muted';pending.textContent='내 자료를 검색하고 답변하는 중…';el('chat-log').append(pending);
+        const result=await workspace('/chat/sessions/'+activeChatSession+'/messages',{method:'POST',body:JSON.stringify({message:text})});pending.remove();appendChat(result);await loadChatSessions();
+      }catch(error){fail(error);await openChatSession(activeChatSession).catch(()=>{})}finally{chatBusy=false;el('chat-send').disabled=false}
+    }
+    async function loadEssays(){const items=await workspace('/essays');const list=el('essay-list');clear(list);
+      for(const item of items){const b=button(item.question,()=>openEssay(item.id).catch(fail));b.title=item.job_preview;list.append(b)}
+    }
+    function renderEssay(result){activeEssay=result.id;el('essay-title').textContent=result.question;el('essay-draft').textContent=result.draft;
+      renderCitations(el('essay-sources'),result.citations);el('essay-revise').disabled=false;el('essay-job').value=result.job_text;el('essay-question').value=result.question;el('essay-scope').value=result.folder_id||'';
+    }
+    async function openEssay(id){renderEssay(await workspace('/essays/'+id))}
+    let pendingActivityFile=null,activeActivity=null;
+    async function showActivities(fileId=null){
+      pendingActivityFile=fileId;el('activities-title').textContent=fileId?'파일을 연결할 활동 선택':'내 활동 카드';
+      const activities=await api('/activities');const list=el('activity-list');clear(list);
+      if(!activities.length){const hint=document.createElement('p');hint.className='muted';hint.textContent='아직 활동이 없습니다. 위에서 첫 활동을 만들어 보세요.';list.append(hint)}
+      for(const activity of activities){
+        const row=document.createElement('div');row.className='activity-row';
+        const name=document.createElement('span');name.textContent=`${activity.title} · 파일 ${activity.file_count}개 · 읽기 완료 ${activity.text_ready_count}개`;
+        const action=button(fileId?'이 활동에 연결':'열기',async()=>{
+          try{if(fileId){await api('/activities/'+activity.id+'/files/'+fileId,{method:'PUT'});notice('파일을 활동에 연결했습니다');await showActivities(fileId)}
+          else{el('activities-dialog').close();await showActivity(activity.id)}}catch(error){fail(error)}
+        });action.className='small';row.append(name,action);list.append(row)
+      }
+      if(!fileId)renderActivitySuggestions(activities).catch(fail);
+      else if(el('activity-suggestions'))el('activity-suggestions').replaceChildren();
+      if(!el('activities-dialog').open)el('activities-dialog').showModal();
+    }
+    async function renderActivitySuggestions(activities){
+      let box=el('activity-suggestions');if(!box){box=document.createElement('section');box.id='activity-suggestions';el('activity-list').after(box)}
+      box.replaceChildren();const heading=document.createElement('h3');heading.textContent='자료에서 제안한 활동 후보';box.append(heading);
+      const data=await api('/activities/suggestions');const hint=document.createElement('p');hint.className='muted';hint.textContent='폴더 위치 또는 파일명·읽힌 원문의 공통 단어로 후보를 묶었습니다. 파일을 골라 새 활동으로 만들거나 기존 활동에 합치세요. 체크를 해제하면 해당 파일은 분리됩니다.'+(data.truncated?' 파일 5,000개까지만 살폈습니다.':'')+(data.content_limited?' 원문 비교는 최근 읽힌 파일 500개까지만 했습니다.':'');box.append(hint);
+      if(!data.suggestions.length){const empty=document.createElement('p');empty.className='muted';empty.textContent='제안할 파일 묶음이 아직 없습니다.';box.append(empty);return}
+      for(const candidate of data.suggestions){const detail=document.createElement('details');detail.className='activity-suggestion';const summary=document.createElement('summary');summary.textContent=`${candidate.title} · 파일 ${candidate.file_count}개 · ${candidate.reason} (검토 필요)`;detail.append(summary);box.append(detail);
+        detail.addEventListener('toggle',()=>{if(!detail.open||detail.dataset.rendered)return;detail.dataset.rendered='1';
+          const title=document.createElement('input');title.value=candidate.title;title.maxLength=200;title.setAttribute('aria-label','활동 후보 이름');detail.append(title);
+          const target=document.createElement('select');const newOption=document.createElement('option');newOption.value='';newOption.textContent='새 활동 만들기';target.append(newOption);for(const activity of activities){const option=document.createElement('option');option.value=activity.id;option.textContent=`기존 활동에 합치기: ${activity.title}`;target.append(option)}detail.append(target);
+          const list=document.createElement('div');list.className='suggestion-files';for(const file of candidate.files.slice(0,200)){const label=document.createElement('label');const checkbox=document.createElement('input');checkbox.type='checkbox';checkbox.value=file.id;checkbox.checked=true;label.append(checkbox,document.createTextNode(` ${file.name} · ${file.analysis_status}`));list.append(label)}detail.append(list);
+          if(candidate.files.length>200){const warning=document.createElement('p');warning.className='muted';warning.textContent='앞의 200개 파일만 표시합니다. 나머지는 활동을 만든 뒤 폴더 연결 기능으로 추가하세요.';detail.append(warning)}
+          const accept=button('선택한 파일 연결',async()=>{const file_ids=Array.from(list.querySelectorAll('input:checked'),input=>input.value);if(!file_ids.length){notice('연결할 파일을 선택해 주세요.');return}accept.disabled=true;try{let activityId=target.value;if(!activityId){const created=await api('/activities',{method:'POST',body:JSON.stringify({title:title.value.trim()})});activityId=created.id}await api(`/activities/${activityId}/files`,{method:'POST',body:JSON.stringify({file_ids})});notice(`${file_ids.length}개 파일을 활동에 연결했습니다.`);el('activities-dialog').close();await showActivity(activityId)}catch(error){fail(error)}finally{accept.disabled=false}});accept.className='small';detail.append(accept)})
+      }
+    }
+    async function showActivity(id){
+      activeActivity=id;const [activity,result]=await Promise.all([api('/activities/'+id),api('/activities/'+id+'/markdown')]);
+      el('activity-detail-title').textContent=activity.title;
+      el('activity-markdown').textContent=result.markdown;
+      el('activity-link-folder').hidden=!current;
+      const list=el('activity-files');clear(list);
+      for(const file of activity.files){
+        const row=document.createElement('div');row.className='activity-row';
+        const label=document.createElement('span');label.textContent=`${file.name} · 텍스트 추출 ${file.analysis_status}`;
+        const remove=button('연결 해제',async()=>{try{await api('/activities/'+id+'/files/'+file.id,{method:'DELETE'});await showActivity(id)}catch(error){fail(error)}});
+        remove.className='small';row.append(label,remove);list.append(row)
+      }
+      if(!activity.files.length){const hint=document.createElement('p');hint.className='muted';hint.textContent='연결된 파일이 없습니다. 파일 목록의 활동 버튼이나 현재 폴더 연결을 사용하세요.';list.append(hint)}
+      await Promise.all([renderActivityFacts(id),renderReviewedMarkdown(id)]);
+      if(!el('activity-detail-dialog').open)el('activity-detail-dialog').showModal();
+    }
+    async function renderActivityFacts(id){
+      let box=el('activity-facts');if(!box){box=document.createElement('section');box.id='activity-facts';el('activity-files').after(box)}box.replaceChildren();
+      const title=document.createElement('h3');title.textContent='자료에서 찾은 사실 후보';box.append(title);
+      const controls=document.createElement('div');controls.className='activity-actions';
+      const analyze=button('연결 파일 분석 시작',async()=>{analyze.disabled=true;try{await api(`/activities/${id}/analyze`,{method:'POST'});notice('분석을 대기열에 넣었습니다. 잠시 후 결과를 새로고침하세요.');await renderActivityFacts(id)}catch(error){fail(error)}finally{analyze.disabled=false}});
+      const refresh=button('결과 새로고침',async()=>{await renderActivityFacts(id);await renderReviewedMarkdown(id)});analyze.className=refresh.className='small';controls.append(analyze,refresh);box.append(controls);
+      const data=await api(`/activities/${id}/facts`);analyze.disabled=['queued','processing'].includes(data.job?.status);const status=document.createElement('p');status.className='muted';status.textContent=`분석: ${data.job?.status||'시작 전'} · 연결 파일 ${data.files_total}개 중 검토한 파일 ${data.job?.files_analyzed||0}개${data.job?.error?' · '+data.job.error:''}${data.source_changed?' · 자료가 바뀌어 재분석 필요':''}`;box.append(status);
+      if(data.job?.files_total>data.job?.files_analyzed){const partial=document.createElement('p');partial.className='muted';partial.textContent='일부 파일은 읽지 못했거나 이번 분석의 40개 파일 제한에 포함되지 않았습니다.';box.append(partial)}
+      if(data.questions.length){const heading=document.createElement('h4');heading.textContent='사용자 확인 질문';box.append(heading);for(const question of data.questions){const item=document.createElement('p');item.className='preview-hint';item.textContent=question;box.append(item)}}
+      for(const fact of data.facts){const card=document.createElement('article');card.className='activity-fact';const statement=document.createElement('p');statement.textContent=`${fact.kind} · ${fact.content}`;card.append(statement);
+        const source=button(`${fact.source_file_name||'삭제된 파일'} · C${fact.source_chunk_index} · ${fact.source_location}`,()=>showAnalysis({id:fact.source_file_id,upload_status:'uploaded'}).catch(fail));source.className='small';card.append(source);
+        const quote=document.createElement('blockquote');quote.textContent=fact.source_quote;card.append(quote);
+        const state=document.createElement('p');state.className='muted';state.textContent=`상태: ${fact.review_state}${fact.stale?' · 원본 변경/삭제로 재검토 필요':''} · 주체: ${fact.subject}`;card.append(state);
+        const subject=document.createElement('select');for(const [value,label] of [['unclear','주체 불명'],['project','프로젝트'],['team','팀'],['user','내가 직접 함']]){const option=document.createElement('option');option.value=value;option.textContent=label;subject.append(option)}subject.value=fact.subject;card.append(subject);
+        const note=document.createElement('input');note.placeholder='내 역할·측정 조건 등 확인 메모';note.maxLength=1000;note.value=fact.review_note||'';card.append(note);
+        for(const [value,label] of [['confirmed','확인'],['rejected','이 내용 제외']]){const action=button(label,async()=>{try{await api(`/activities/${id}/facts/${fact.id}`,{method:'PATCH',body:JSON.stringify({review_state:value,subject:subject.value,review_note:note.value})});await renderActivityFacts(id);await renderReviewedMarkdown(id)}catch(error){fail(error)}});action.className='small';action.disabled=fact.stale;card.append(action)}box.append(card)}
+      if(!data.facts.length){const empty=document.createElement('p');empty.className='muted';empty.textContent='아직 검토할 사실 후보가 없습니다. 연결한 파일의 읽기 상태를 확인하고 분석을 시작하세요.';box.append(empty)}
+    }
+    async function renderReviewedMarkdown(id){
+      let box=el('activity-reviewed-md');if(!box){box=document.createElement('section');box.id='activity-reviewed-md';el('activity-facts').after(box)}box.replaceChildren();
+      const title=document.createElement('h3');title.textContent='확인된 활동 요약 MD';box.append(title);
+      const result=await api(`/activities/${id}/reviewed-markdown`);const status=document.createElement('p');status.className='muted';status.textContent=result.snapshot?`저장된 버전 ${result.snapshot.id}${result.needs_refresh?' · 파일이나 확인 내용이 바뀌어 갱신 필요':''}${result.needs_source_review?' · 일부 출처 재검토 필요':''}`:'아직 생성한 요약 MD가 없습니다.';box.append(status);
+      const generate=button(result.snapshot?'현재 확인 내용으로 MD 갱신':'확인된 내용으로 MD 만들기',async()=>{generate.disabled=true;try{await api(`/activities/${id}/reviewed-markdown`,{method:'POST'});await renderReviewedMarkdown(id)}catch(error){fail(error)}finally{generate.disabled=false}});generate.className='small';box.append(generate);
+      if(result.snapshot){const download=button('요약 MD 다운로드',()=>{const url=URL.createObjectURL(new Blob([result.snapshot.markdown],{type:'text/markdown;charset=utf-8'}));const link=document.createElement('a');link.href=url;link.download=result.filename;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000)});download.className='small';box.append(download);
+        const preview=document.createElement('pre');preview.className='read-card-chunk';preview.textContent=result.snapshot.markdown;box.append(preview)}
+    }
     function fail(error){notice(error.message||String(error));console.error(error)}
     async function createFolder(name,parentId){return api('/folders',{method:'POST',body:JSON.stringify({name,parent_id:parentId})})}
     const pendingKey=(file,relative,parentId)=>`skive-upload:${session.user.id}:${parentId||'root'}:${relative}:${file.size}:${file.lastModified}`;
-    const uploadState={queue:[],running:0,totalFiles:0,done:0,failed:0,totalBytes:0,completedBytes:0,active:new Map(),nextId:0,paintQueued:false,summaryRoots:new Set(),startedAt:0};
+    const uploadState={queue:[],running:0,totalFiles:0,done:0,failed:0,totalBytes:0,completedBytes:0,active:new Map(),nextId:0,paintQueued:false,startedAt:0};
     let refreshQueued=false;
     function scheduleFolderRefresh(){
       if(refreshQueued)return;refreshQueued=true;
@@ -260,8 +467,6 @@
           state.running--;scheduleUploadPaint();pumpUploads();
           if(!state.running&&!state.queue.length){
             notice(`${state.done}개 파일 업로드 완료${state.failed?` · ${state.failed}개 실패. 같은 폴더를 다시 선택해 재개하세요.`:''}`);
-            if(!state.failed)for(const id of state.summaryRoots)api('/folders/'+id+'/summary',{method:'POST'}).catch(fail);
-            state.summaryRoots.clear();
           }
         });
       }
@@ -271,18 +476,16 @@
       const base=current,state=uploadState;
       if(!state.running&&!state.queue.length){
         state.totalFiles=0;state.done=0;state.failed=0;state.totalBytes=0;state.completedBytes=0;
-        state.active.clear();state.summaryRoots.clear();state.startedAt=Date.now();clear(el('progress-list'));
+        state.active.clear();state.startedAt=Date.now();clear(el('progress-list'));
         el('progress').classList.remove('compact');el('close-progress').textContent='−';
       }
       el('progress').style.display='block';
       el('upload-title').textContent=isFolder?'폴더 준비 중':'파일 준비 중';
       let folders={};
-      if(!isFolder&&base)state.summaryRoots.add(base);
       if(isFolder){
         const paths=[...new Set(files.map(file=>file.webkitRelativePath.split('/').slice(0,-1).join('/')).filter(Boolean))];
         try{
           folders=(await api('/folders/import-tree',{method:'POST',body:JSON.stringify({parent_id:base,paths})})).folders;
-          for(const path of paths){const root=path.split('/')[0];state.summaryRoots.add(folders[root])}
           await show(); // Parent folder appears before the first byte is uploaded.
         }catch(error){el('upload-title').textContent='폴더 준비 실패';throw error}
       }
@@ -294,12 +497,12 @@
       }
       scheduleUploadPaint();pumpUploads();
     }
-    async function signedIn(live){session=live;el('auth').hidden=true;el('app').hidden=false;el('account').textContent=live.user.email;current=null;trail=[];await show();await refreshSummary()}
+    async function signedIn(live){session=live;activeChatSession=null;activeEssay=null;el('auth').hidden=true;el('app').hidden=false;el('account').textContent=live.user.email;current=null;trail=[];showTab('drive');await show();await refreshSummary()}
     async function boot(){
       try{const r=await fetch('/api/drive/config');if(!r.ok)throw new Error('Supabase 설정이 필요합니다. 프로젝트 루트 .env에 SUPABASE_URL과 SUPABASE_PUBLISHABLE_KEY를 추가하세요.');cfg=await r.json();
         supabase=createClient(cfg.url,cfg.key);const {data:{session:live}}=await withTimeout(supabase.auth.getSession());if(live)await signedIn(live);else el('auth').hidden=false;
         supabase.auth.onAuthStateChange((event,active)=>{
-          if(event==='SIGNED_OUT'){session=null;el('app').hidden=true;el('auth').hidden=false}
+          if(event==='SIGNED_OUT'){session=null;activeChatSession=null;activeEssay=null;el('app').hidden=true;el('auth').hidden=false}
           else if(event==='SIGNED_IN'&&active){
             // Supabase holds its auth lock during this callback. Defer API calls.
             setTimeout(()=>{if(session?.user?.id!==active.user.id)signedIn(active).catch(fail)},0)
@@ -326,18 +529,62 @@
     el('signin').onclick=()=>submitAuth('signin');
     el('signup').onclick=()=>submitAuth('signup');
     el('signout').onclick=()=>supabase.auth.signOut().catch(fail);
-    el('home').onclick=()=>{current=null;trail=[];show().catch(fail)};el('refresh').onclick=()=>show().catch(fail);
+    el('home').onclick=()=>goHome().catch(fail);el('brand-home').onclick=()=>goHome().catch(fail);
+    el('nav-profile').onclick=()=>showTab('profile');el('nav-chat').onclick=()=>showTab('chat');el('nav-essays').onclick=()=>showTab('career');
+    el('refresh').onclick=()=>{if(activeTab==='drive')show().catch(fail);else if(activeTab==='profile')loadWorkspaceProfile().catch(fail);else if(activeTab==='chat')loadChatSessions().catch(fail);else if(activeTab==='career')careerUI.show().catch(fail);else loadEssays().catch(fail)};
+    el('chat-current-folder').onclick=async()=>{try{activeChatSession=null;clear(el('chat-log'));await loadScopeOptions();el('chat-scope').value=current;el('chat-scope-note').textContent='이 폴더와 하위 폴더에서 검색합니다.';showTab('chat')}catch(error){fail(error)}};
+    el('profile-save').onclick=async()=>{try{const fields={display_name:'profile-name',school:'profile-school',major:'profile-major',grade:'profile-grade',career_goal:'profile-goal',personal_notes:'profile-notes',essay_style:'profile-style'};
+      const body=Object.fromEntries(Object.entries(fields).map(([key,id])=>[key,el(id).value.trim()]));await workspace('/profile',{method:'PUT',body:JSON.stringify(body)});notice('프로필을 저장했습니다')
+    }catch(error){fail(error)}};
+    el('profile-memory-save').onclick=async()=>{const input=el('profile-memory-input'),content=input.value.trim();if(!content)return;
+      try{await career('/memory',{method:'POST',body:JSON.stringify({content})});input.value='';await loadProfileMemory();notice('본인 진술로 저장했습니다')}
+      catch(error){fail(error)}};
+    el('chat-new').onclick=()=>{activeChatSession=null;clear(el('chat-log'));el('chat-scope-note').textContent='새 대화는 선택한 범위에서 시작합니다.';loadChatSessions().catch(fail)};
+    el('chat-scope').onchange=()=>{activeChatSession=null;clear(el('chat-log'));el('chat-scope-note').textContent=el('chat-scope').value?'이 폴더와 하위 폴더에서 새 대화를 시작합니다.':'전체 드라이브에서 새 대화를 시작합니다.'};
+    el('chat-send').onclick=()=>sendChat();el('chat-input').onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChat()}};
+    el('essay-create').onclick=async()=>{const button=el('essay-create');button.disabled=true;button.textContent='자료 검색·작성 중…';try{
+      const result=await workspace('/essays',{method:'POST',body:JSON.stringify({job_text:el('essay-job').value.trim(),question:el('essay-question').value.trim(),folder_id:el('essay-scope').value||null})});renderEssay(result);await loadEssays();notice('초안을 저장했습니다. 출처와 본인 역할을 확인해 주세요')
+    }catch(error){fail(error)}finally{button.disabled=false;button.textContent='근거 찾아 초안 만들기'}};
+    el('essay-revise').onclick=async()=>{if(!activeEssay)return;const button=el('essay-revise');button.disabled=true;try{
+      const result=await workspace('/essays/'+activeEssay+'/revise',{method:'POST',body:JSON.stringify({instruction:el('essay-instruction').value.trim()})});renderEssay(result);el('essay-instruction').value='';notice('수정 초안을 저장했습니다. 다시 검토해 주세요')
+    }catch(error){fail(error)}finally{button.disabled=false}};
     el('new-folder').onclick=async()=>{const name=prompt('폴더 이름');if(!name)return;try{await createFolder(name,current);await show()}catch(err){fail(err)}};
-    el('new-menu').onclick=()=>el('new-folder').click();
+    el('new-menu').onclick=()=>showPopover(el('new-popover'),el('new-menu'));
+    el('menu-new-folder').onclick=()=>{closePopovers();el('new-folder').click()};
+    el('menu-upload-files').onclick=()=>{closePopovers();el('upload-files').click()};
+    el('menu-upload-folder').onclick=()=>{closePopovers();el('upload-folder').click()};
+    document.addEventListener('click',event=>{if(!event.target.closest('.popover,#new-menu,.row-more'))closePopovers()});
+    document.addEventListener('keydown',event=>{if(event.key==='Escape')closePopovers()});
+    for(const heading of document.querySelectorAll('.sort-button'))heading.onclick=()=>{const key=heading.dataset.sort;if(sortKey===key)sortDirection*=-1;else{sortKey=key;sortDirection=key==='date'?-1:1}render(visibleItems)};
     el('upload-files').onclick=()=>el('file-input').click();el('upload-folder').onclick=()=>el('folder-input').click();
     el('file-input').onchange=e=>{uploadMany([...e.target.files],false).catch(fail);e.target.value=''};
     el('folder-input').onchange=e=>{uploadMany([...e.target.files],true).catch(fail);e.target.value=''};
-    el('search').onkeydown=async e=>{if(e.key!=='Enter')return;const q=e.target.value.trim();if(!q){await show();return}try{const data=await api('/search?q='+encodeURIComponent(q));searchMode=true;render(data);el('heading').textContent='검색: '+q}catch(err){fail(err)}};
-    el('close-analysis').onclick=()=>el('analysis-dialog').close();
-    el('close-summary').onclick=()=>el('summary-dialog').close();
+    el('search').onkeydown=async e=>{if(e.key!=='Enter')return;const q=e.target.value.trim();if(!q){await show();return}try{const data=await api('/search?q='+encodeURIComponent(q));searchMode=true;renderBreadcrumbs(q);render(data)}catch(err){fail(err)}};
+    el('close-analysis').onclick=()=>{el('analysis-dialog').close();el('original-frame').src=''};
+    el('preview-original').onclick=()=>setPreviewTab('original');el('preview-extracted').onclick=()=>setPreviewTab('extracted');
+    el('open-activities').onclick=()=>showActivities().catch(fail);
+    el('close-activities').onclick=()=>el('activities-dialog').close();
+    el('close-activity-detail').onclick=()=>el('activity-detail-dialog').close();
+    el('create-activity').onclick=async()=>{const title=el('activity-name').value.trim();if(!title){notice('활동 이름을 입력해 주세요');return}
+      try{const kind_tags=el('activity-tags').value.split(',').map(x=>x.trim()).filter(Boolean);
+        const activity=await api('/activities',{method:'POST',body:JSON.stringify({title,kind_tags})});
+        if(pendingActivityFile)await api('/activities/'+activity.id+'/files/'+pendingActivityFile,{method:'PUT'});
+        el('activity-name').value='';el('activity-tags').value='';el('activities-dialog').close();await showActivity(activity.id)
+      }catch(error){fail(error)}};
+    el('activity-edit').onclick=async()=>{if(!activeActivity)return;try{const activity=await api('/activities/'+activeActivity);
+      const title=prompt('활동 이름',activity.title);if(title===null)return;
+      const tags=prompt('분류를 쉼표로 구분',activity.kind_tags.join(', '));if(tags===null)return;
+      await api('/activities/'+activeActivity,{method:'PATCH',body:JSON.stringify({title,kind_tags:tags.split(',').map(x=>x.trim()).filter(Boolean)})});
+      await showActivity(activeActivity)}catch(error){fail(error)}};
+    el('activity-link-folder').onclick=async()=>{if(!activeActivity||!current)return;
+      const name=trail.at(-1)?.name||'현재 폴더';if(!confirm(name+'와 하위 폴더의 현재 파일을 이 활동에 연결할까요? 나중에 파일별로 해제할 수 있습니다.'))return;
+      try{const result=await api('/activities/'+activeActivity+'/folders/'+current+'/files',{method:'POST'});
+        notice(result.added+'개 파일을 새로 연결했습니다');await showActivity(activeActivity)}catch(error){fail(error)}};
+    el('activity-download').onclick=async()=>{if(!activeActivity)return;try{const result=await api('/activities/'+activeActivity+'/markdown');
+      const url=URL.createObjectURL(new Blob([result.markdown],{type:'text/markdown;charset=utf-8'}));
+      const link=document.createElement('a');link.href=url;link.download=result.filename;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000)
+    }catch(error){fail(error)}};
     el('close-progress').onclick=()=>{const panel=el('progress');if(!uploadState.running&&!uploadState.queue.length){panel.style.display='none';return}panel.classList.toggle('compact');el('close-progress').textContent=panel.classList.contains('compact')?'＋':'−'};
-    el('folder-summary').onclick=()=>showSummary(current,trail.at(-1)?.name||'폴더').catch(fail);
-    el('request-summary').onclick=async()=>{if(!summaryFolder)return;try{await api('/folders/'+summaryFolder.id+'/summary',{method:'POST'});await showSummary(summaryFolder.id,summaryFolder.name)}catch(err){fail(err)}};
     setInterval(async()=>{if(session&&!document.hidden){try{const pending=await refreshSummary();if(pending&&!searchMode)await show()}catch(error){console.error(error)}}},10000);
     setInterval(()=>{if(uploadState.startedAt&&(uploadState.running||uploadState.queue.length))scheduleUploadPaint()},1000);
     boot();

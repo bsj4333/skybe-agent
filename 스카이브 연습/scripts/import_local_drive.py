@@ -214,7 +214,7 @@ def main():
         parser.error(f"source exceeds --max-bytes={args.max_bytes}; no DB or Storage changes made")
     if not files:
         parser.error("no files selected")
-    user_id, tasks, folders, root_folder_id = prepare(args.user_email, root, files)
+    user_id, tasks, folders, _root_folder_id = prepare(args.user_email, root, files)
     print(f"PREPARED folders={folders} files={len(tasks)} account={args.user_email}", flush=True)
     base = os.environ["SUPABASE_URL"].rstrip("/").replace(".supabase.co", ".storage.supabase.co")
     secret = os.environ["SUPABASE_SECRET_KEY"]
@@ -241,13 +241,7 @@ def main():
         print(f"FAILED {path}: {error}", flush=True)
     if failures:
         raise SystemExit(f"Import finished with {len(failures)} failed files; rerun to retry")
-    with get_connection() as conn:
-        conn.execute(
-            "insert into skive.drive_folder_summaries (user_id,folder_id,status) values (%s,%s,'queued') "
-            "on conflict (folder_id) do update set status='queued',error=null,updated_at=now()",
-            (user_id, root_folder_id),
-        )
-    print("FOLDER_SUMMARY queued after successful import", flush=True)
+    print("Import complete. Link relevant files to an activity card in Drive.", flush=True)
 
 
 if __name__ == "__main__":

@@ -5,9 +5,11 @@ from uuid import uuid4
 
 import pytest
 from fastapi.testclient import TestClient
+from fastapi import HTTPException
 from psycopg.errors import InsufficientPrivilege
 
 from skive.db import get_connection
+from skive.drive_api import reanalyze_file
 from skive.server import app
 
 
@@ -76,3 +78,15 @@ def test_storage_policy_accepts_only_registered_path():
     finally:
         conn.rollback()
         conn.close()
+
+
+def test_reanalyze_cannot_queue_another_users_file():
+    if not os.getenv("DATABASE_URL"):
+        pytest.skip("Live Supabase database is not configured")
+    with get_connection() as conn:
+        row = conn.execute("select id from skive.drive_files limit 1").fetchone()
+    if not row:
+        pytest.skip("No drive file exists for the isolation test")
+    with pytest.raises(HTTPException) as error:
+        reanalyze_file(row[0], uuid4())
+    assert error.value.status_code == 404

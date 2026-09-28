@@ -1,5 +1,10 @@
 from docx import Document
 from openpyxl import Workbook
+from openpyxl.comments import Comment
+from pptx import Presentation
+from pypdf import PdfWriter
+from pypdf.annotations import Text
+from zipfile import ZipFile
 
 from skive.loaders import load_drive_file
 
@@ -57,3 +62,80 @@ def test_docx_extracts_paragraph_and_table_row_locations(tmp_path):
         ("paragraph 1", "CAPA 수업 내용"),
         ("table 1 row 1", "계획 | 실적"),
     ]
+
+
+def test_pdf_comment_keeps_page_and_reports_unreadable_annotation(tmp_path):
+    path = tmp_path / "review.pdf"
+    writer = PdfWriter()
+    writer.add_blank_page(width=300, height=300)
+    writer.add_annotation(page_number=0, annotation=Text(rect=(10, 10, 30, 30), text="압력 수치 재확인"))
+    writer.add_annotation(page_number=0, annotation=Text(rect=(40, 40, 60, 60), text=""))
+    with path.open("wb") as output:
+        writer.write(output)
+
+    coverage = {}
+    chunks = load_drive_file(path, path.name, coverage)
+    assert any(chunk.location.startswith("p.1 annotation") and chunk.text == "압력 수치 재확인"
+               for chunk in chunks)
+    assert coverage["supplemental"] == [{"kind": "pdf_annotations", "label": "PDF 주석",
+        "detected": 2, "extracted": 1, "status": "partial"}]
+
+
+def test_pptx_speaker_notes_are_separate_source_chunks(tmp_path):
+    path = tmp_path / "lecture.pptx"
+    deck = Presentation()
+    slide = deck.slides.add_slide(deck.slide_layouts[6])
+    slide.notes_slide.notes_text_frame.text = "BOM과 CAPA 차이를 설명"
+    deck.slides.add_slide(deck.slide_layouts[6])
+    deck.save(path)
+
+    coverage = {}
+    chunks = load_drive_file(path, path.name, coverage)
+    assert [(chunk.location, chunk.text) for chunk in chunks] == [
+        ("slide 1 speaker notes", "BOM과 CAPA 차이를 설명")]
+    assert coverage["supplemental"] == [{"kind": "speaker_notes", "label": "PPT 발표자 노트",
+        "detected": 1, "extracted": 1, "status": "complete"}]
+
+
+def test_xlsx_cell_note_keeps_sheet_address_and_reports_coverage(tmp_path):
+    path = tmp_path / "scm.xlsx"
+    book = Workbook()
+    sheet = book.active
+    sheet.title = "SCM"
+    sheet["B2"] = "CAPA"
+    sheet["B2"].comment = Comment("이 수치는 다음 주에 확인", "팀원")
+    book.save(path)
+
+    coverage = {}
+    chunks = load_drive_file(path, path.name, coverage)
+    assert any(chunk.location == "sheet SCM cell note B2" and chunk.text == "이 수치는 다음 주에 확인"
+               for chunk in chunks)
+    assert coverage["supplemental"][0] == {"kind": "cell_notes", "label": "엑셀 셀 메모",
+        "detected": 1, "extracted": 1, "status": "complete"}
+    assert coverage["supplemental"][1]["status"] == "absent"
+
+
+def test_xlsx_threaded_comment_is_read_from_its_sheet_relationship(tmp_path):
+    path = tmp_path / "threaded.xlsx"
+    book = Workbook()
+    book.active["C3"] = "검토 대상"
+    book.save(path)
+    original = tmp_path / "base.xlsx"
+    path.rename(original)
+    with ZipFile(original) as source, ZipFile(path, "w") as target:
+        for item in source.infolist():
+            target.writestr(item, source.read(item.filename))
+        target.writestr("xl/worksheets/_rels/sheet1.xml.rels",
+            '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+            '<Relationship Id="comment1" Type="http://schemas.microsoft.com/office/2017/10/relationships/threadedComment" '
+            'Target="/xl/threadedComments/threadedComment1.xml"/></Relationships>')
+        target.writestr("xl/threadedComments/threadedComment1.xml",
+            '<ThreadedComments xmlns="http://schemas.microsoft.com/office/spreadsheetml/2018/threadedcomments">'
+            '<threadedComment ref="C3"><text>측정 조건을 적어 주세요</text></threadedComment></ThreadedComments>')
+
+    coverage = {}
+    chunks = load_drive_file(path, path.name, coverage)
+    assert any(chunk.location == "sheet Sheet threaded comment C3" and
+               chunk.text == "측정 조건을 적어 주세요" for chunk in chunks)
+    assert coverage["supplemental"][1] == {"kind": "threaded_comments", "label": "엑셀 대화형 댓글",
+        "detected": 1, "extracted": 1, "status": "complete"}

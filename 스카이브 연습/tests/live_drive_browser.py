@@ -60,25 +60,24 @@ def main() -> None:
                     page.locator("#upload-title").get_by_text("업로드 완료").wait_for(timeout=90000)
                     timings["two_files_uploaded_seconds"] = round(time.monotonic() - started, 2)
                     assert "경과" in page.locator("#upload-detail").inner_text()
-                    page.locator("#folders .name").filter(has_text="브라우저 테스트").click()
+                    page.locator("#items .name-button").filter(has_text="브라우저 테스트").click()
                     page.get_by_text("2개 파일", exact=False).wait_for(timeout=30000)
                     for _ in range(30):
-                        if page.locator("#files .file-row").count() == 2 and page.get_by_text("텍스트 추출 완료").count() == 2:
+                        if page.locator("#items .drive-row").count() == 2 and page.get_by_text("원문 읽음").count() == 2:
                             break
                         page.wait_for_timeout(1000)
                         page.locator("#refresh").click()
-                    page.locator("#files .file-row").filter(has_text="notes.txt").get_by_role("button", name="원문/색인").click()
+                    page.locator("#items .drive-row").filter(has_text="notes.txt").locator(".name-button").click()
                     page.locator("#analysis-dialog").wait_for(state="visible")
+                    page.locator("#preview-extracted").click()
                     text = page.locator("#analysis-text").inner_text()
                     assert "BOM" in text and "위치 색인" in text, text[:300]
                     page.locator("#close-analysis").click()
-                    page.locator("#folder-summary").click()
-                    page.locator("#summary-dialog").wait_for(state="visible")
-                    assert page.locator("#summary-title").inner_text().startswith("브라우저 테스트")
+                    assert page.get_by_text("경험 초안").count() == 0
                     page.screenshot(path=str(Path(tempfile.gettempdir()) / "skive-drive-browser.png"))
                     assert not errors, errors
                     print(json.dumps({"timings": timings, "preview_ok": True,
-                                      "files_in_folder": page.locator("#files .file-row").count(),
+                                      "files_in_folder": page.locator("#items .drive-row").count(),
                                       "browser_errors": errors}, ensure_ascii=False))
                     browser.close()
         finally:

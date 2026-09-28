@@ -304,15 +304,94 @@ def rename_file(file_id: UUID, body: Rename, user_id: UUID = Depends(current_use
 def file_analysis(file_id: UUID, user_id: UUID = Depends(current_user_id)):
     with user_connection(user_id) as conn:
         row = row_or_404(conn.execute(
-            "select id,name,version,analysis_status,analysis_error,analysis_markdown,analyzed_at "
+            "select id,name,storage_path,mime_type,upload_status,version,analysis_status,analysis_error,analysis_markdown,analysis_coverage,analyzed_at "
             "from skive.drive_files where id=%s and trashed_at is null", (file_id,)
         ).fetchone(), "File")
         preview = conn.execute(
-            "select location,left(text,8000) as text from skive.drive_file_chunks "
+            "select chunk_index,location,left(text,8000) as text from skive.drive_file_chunks "
             "where file_id=%s and file_version=%s order by chunk_index limit 12",
             (file_id, row["version"]),
         ).fetchall()
-        return {**row, "preview_chunks": preview}
+        supplemental = conn.execute(
+            "select chunk_index,location,left(text,8000) as text from skive.drive_file_chunks "
+            "where file_id=%s and file_version=%s and ("
+            "location like '%% annotation %%' or location like '%% speaker notes' or "
+            "location like '%% cell note %%' or location like '%% threaded comment %%') "
+            "order by chunk_index limit 20", (file_id, row["version"]),
+        ).fetchall()
+        return {**row, "preview_chunks": preview, "supplemental_chunks": supplemental}
+
+
+@router.get("/files/{file_id}/read-card")
+def file_read_card(file_id: UUID, user_id: UUID = Depends(current_user_id)):
+    with user_connection(user_id) as conn:
+        file = row_or_404(conn.execute(
+            "select id,name,version,sha256,upload_status,analysis_status,analysis_error,"
+            "analysis_coverage,analyzed_at from skive.drive_files "
+            "where id=%s and trashed_at is null", (file_id,),
+        ).fetchone(), "File")
+        card = conn.execute(
+            "select file_version,parser_version,status,chunk_count,quote_count,number_count,"
+            "quote_samples,number_samples,coverage,error,created_at "
+            "from skive.drive_file_read_cards where file_id=%s and file_version=%s",
+            (file_id, file["version"]),
+        ).fetchone()
+        state = (file["analysis_status"] if file["analysis_status"] != "ready" else
+                 card["status"] if card else "building")
+        return {"file": file, "state": state, "card": card,
+                "note": "대표 문장과 수치는 추출 원문의 위치 색인입니다. 본인 역할이나 성과로 확인된 사실이 아닙니다."}
+
+
+@router.get("/files/{file_id}/read-card/chunks")
+def file_read_card_chunks(file_id: UUID, after: int = Query(default=0, ge=0),
+                          limit: int = Query(default=20, ge=1, le=50),
+                          user_id: UUID = Depends(current_user_id)):
+    with user_connection(user_id) as conn:
+        file = row_or_404(conn.execute(
+            "select id,version,analysis_status from skive.drive_files "
+            "where id=%s and trashed_at is null", (file_id,),
+        ).fetchone(), "File")
+        if file["analysis_status"] != "ready":
+            return {"file_id": file_id, "file_version": file["version"],
+                    "analysis_status": file["analysis_status"], "chunks": [], "next_after": None}
+        rows = conn.execute(
+            "select chunk_index,location,text from skive.drive_file_chunks "
+            "where file_id=%s and file_version=%s and chunk_index>%s "
+            "order by chunk_index limit %s",
+            (file_id, file["version"], after, limit + 1),
+        ).fetchall()
+        page = rows[:limit]
+        return {"file_id": file_id, "file_version": file["version"], "analysis_status": file["analysis_status"],
+                "chunks": page, "next_after": page[-1]["chunk_index"] if len(rows) > limit else None}
+
+
+@router.post("/files/{file_id}/reanalyze")
+def reanalyze_file(file_id: UUID, user_id: UUID = Depends(current_user_id)):
+    """Explicitly refresh an old extraction without changing the private original."""
+    with get_connection() as conn:
+        conn.row_factory = dict_row
+        row = row_or_404(conn.execute(
+            "select id,user_id,version,upload_status,analysis_status from skive.drive_files "
+            "where id=%s and user_id=%s and trashed_at is null for update", (file_id, user_id),
+        ).fetchone(), "File")
+        if row["upload_status"] != "uploaded":
+            raise HTTPException(409, "File upload has not finished")
+        if row["analysis_status"] in {"queued", "processing"}:
+            return {"id": file_id, "analysis_status": row["analysis_status"]}
+        conn.execute("delete from skive.drive_file_read_cards where file_id=%s and file_version=%s",
+                     (file_id, row["version"]))
+        conn.execute(
+            "update skive.drive_files set analysis_status='queued',analysis_error=null,"
+            "analysis_coverage=null,updated_at=now() where id=%s and user_id=%s and version=%s",
+            (file_id, user_id, row["version"]),
+        )
+        conn.execute(
+            "insert into skive.drive_jobs (user_id,file_id,file_version,status) values (%s,%s,%s,'queued') "
+            "on conflict (file_id,file_version) do update set status='queued',attempts=0,error=null,"
+            "started_at=null,finished_at=null",
+            (user_id, file_id, row["version"]),
+        )
+    return {"id": file_id, "analysis_status": "queued"}
 
 
 @router.post("/files/{file_id}/move")
@@ -341,12 +420,12 @@ def search(q: str = Query(min_length=1, max_length=100), user_id: UUID = Depends
     pattern = "%" + q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
     with user_connection(user_id) as conn:
         folders = conn.execute(
-            "select id,parent_id,name from skive.drive_folders "
+            "select id,parent_id,name,updated_at from skive.drive_folders "
             "where name ilike %s escape '\\' and trashed_at is null order by updated_at desc limit 100",
             (pattern,),
         ).fetchall()
         files = conn.execute(
-            "select id,folder_id,name,mime_type,size_bytes,analysis_status from skive.drive_files "
+            "select id,folder_id,name,storage_path,mime_type,size_bytes,upload_status,analysis_status,updated_at from skive.drive_files "
             "where name ilike %s escape '\\' and trashed_at is null order by updated_at desc limit 100",
             (pattern,),
         ).fetchall()

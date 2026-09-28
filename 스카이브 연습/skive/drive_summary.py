@@ -82,16 +82,30 @@ def collect_sources(conn, user_id: UUID, files: list[dict]) -> tuple[dict[str, C
     rows = conn.execute(
         "select c.file_id,c.file_version,c.chunk_index,c.location,left(c.text,5000) as text "
         "from skive.drive_file_chunks c where c.user_id=%s and c.file_id=any(%s::uuid[]) "
-        "and c.chunk_index<=3 order by c.file_id,c.chunk_index", (user_id, ids),
+        "and (c.chunk_index<=3 or c.location like '%% annotation %%' or "
+        "c.location like '%% speaker notes' or c.location like '%% cell note %%' or "
+        "c.location like '%% threaded comment %%') order by c.file_id,c.chunk_index", (user_id, ids),
     ).fetchall()
     by_file = {f["id"]: f for f in selected}
     order = {f["id"]: i for i, f in enumerate(selected)}
     chunks: dict[str, Chunk] = {}
     refs: dict[str, dict] = {}
     used = 0
-    for row in sorted(rows, key=lambda r: (order[r["file_id"]], r["chunk_index"])):
+    supplemental_per_file: dict = {}
+    def priority(row):
+        location = row["location"]
+        supplemental = any(token in location for token in
+                           (" annotation ", " speaker notes", " cell note ", " threaded comment "))
+        return (order[row["file_id"]], 0 if row["chunk_index"] == 1 else 1 if supplemental else 2,
+                row["chunk_index"])
+
+    for row in sorted(rows, key=priority):
         file = by_file[row["file_id"]]
         if row["file_version"] != file["version"]:
+            continue
+        is_supplemental = any(token in row["location"] for token in
+                              (" annotation ", " speaker notes", " cell note ", " threaded comment "))
+        if is_supplemental and supplemental_per_file.get(row["file_id"], 0) >= 2:
             continue
         text = row["text"]
         if used + len(text) > MAX_CHARS:
@@ -102,6 +116,8 @@ def collect_sources(conn, user_id: UUID, files: list[dict]) -> tuple[dict[str, C
                      "file_version": file["version"], "chunk_index": row["chunk_index"],
                      "location": row["location"]}
         used += len(text)
+        if is_supplemental:
+            supplemental_per_file[row["file_id"]] = supplemental_per_file.get(row["file_id"], 0) + 1
     return chunks, refs, len({v["file_id"] for v in refs.values()})
 
 

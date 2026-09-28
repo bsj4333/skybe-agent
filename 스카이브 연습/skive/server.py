@@ -23,6 +23,9 @@ from pydantic import BaseModel
 
 from skive import store
 from skive.drive_api import router as drive_router
+from skive.drive_activities import router as activity_router
+from skive.drive_workspace import router as workspace_router
+from skive.drive_career import router as career_router
 from skive.analyzer import analyze_folder
 from skive.apply import run_apply
 from skive.importance import score_importance
@@ -41,6 +44,9 @@ TUS_BROWSER_JS = BASE_DIR / "ui_mockup" / "vendor" / "tus-4.3.1.min.js"
 
 app = FastAPI(title="SKIVE")
 app.include_router(drive_router)
+app.include_router(career_router)
+app.include_router(activity_router)
+app.include_router(workspace_router)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -65,7 +71,7 @@ async def protect_legacy_api(request: Request, call_next):
         os.getenv("SUPABASE_PUBLISHABLE_KEY") or os.getenv("SUPABASE_ANON_KEY")
     )
     path = request.url.path
-    if configured and not legacy_local and path.startswith("/api/") and not path.startswith("/api/drive/"):
+    if configured and not legacy_local and path.startswith("/api/") and not path.startswith(("/api/drive/", "/api/workspace/", "/api/career/")):
         return JSONResponse({"detail": "Legacy single-user API disabled in drive mode"}, status_code=410)
     return await call_next(request)
 
@@ -90,6 +96,12 @@ def drive_index():
 def tus_browser_script():
     return FileResponse(TUS_BROWSER_JS, media_type="application/javascript",
                         headers={"Cache-Control": "public, max-age=31536000, immutable"})
+
+
+@app.get("/assets/career-ui.js")
+def career_browser_script():
+    return FileResponse(BASE_DIR / "ui_mockup" / "career_ui.js", media_type="application/javascript",
+                        headers={"Cache-Control": "no-store"})
 
 
 # ---------------- user ----------------
