@@ -172,16 +172,23 @@
     {
       "id": "F-101",
       "type": "chore",
-      "title": "실사용자 자료의 git 추적 여부 결정",
+      "title": "공개 저장소에 실사용자 자료가 올라가지 않게 하기 (다음 push 전 필수)",
       "area": "repo",
       "status": "ready",
       "owner": "human",
       "priority": 1,
-      "acceptance": ["원격 저장소 공개 여부 확인", "data/store/2. 화력발전소 이상탐지/, data/profile/, data/user.json 추적 방침을 progress.md에 기록"],
-      "verify": {"manual": ["사람 결정"]},
-      "evidence": [],
+      "acceptance": [
+        "다음 push 전에 아래 중 하나를 선택해 실행: (A) GitHub 저장소를 비공개로 전환 (B) 공개 유지 시 push 안 된 커밋에서 실사용자 자료를 제거",
+        "앞으로 실사용자 자료가 추적되지 않도록 .gitignore와 git rm --cached 처리",
+        "결정과 실행 결과를 progress.md 결정 기록에 남김"
+      ],
+      "verify": {"manual": ["사람 결정"], "deterministic": ["git -c core.quotepath=false ls-tree -r --name-only HEAD | grep data/ 로 실사용자 자료 없음 확인"]},
+      "evidence": [
+        {"date": "2026-09-29", "by": "claude", "what": "git 이력 전체에서 키·토큰·DB 비밀번호 패턴 검사", "result": "실제 비밀값 없음. postgres URL 1건은 [비밀번호] 자리표시자"},
+        {"date": "2026-09-29", "by": "claude", "what": "origin/skive-agent(21caf04)의 data/ 비교", "result": "GitHub에는 합성 샘플(김민수 페르소나, *_raw)만 있음. 실명·학교가 든 user.json, '2. 화력발전소 이상탐지' 경험 기록, apply_job_1790126169799.json은 push 안 된 로컬 커밋 4개(687a177~be34693)에만 있음"}
+      ],
       "links": ["harness/build/phase-00-baseline.md"],
-      "notes": "원격: github.com/bsj4333/skybe-agent"
+      "notes": "원격: github.com/bsj4333/skybe-agent (공개). 그냥 push하면 위 실사용자 자료가 공개된다. (B)는 push 안 된 커밋의 이력을 다시 쓰는 작업이라 사람이 하거나 명시적으로 지시해야 한다"
     },
     {
       "id": "F-102",
@@ -283,7 +290,21 @@
       "verify": {"live": ["폴더 1개 재분석"], "real_data": ["사람이 보고서 품질 확인"]},
       "evidence": [{"date": "2026-09-28", "by": "codex", "what": "화력발전소 54폴더·369파일 첫 실행", "result": "원문 근거 1개만 검증 통과. 재실행은 OpenAI 한도로 차단"}],
       "links": ["SKIVE_IMPLEMENTATION_2026-09-28.md"],
-      "notes": "OpenAI 한도 해제 확인 필요. 코드는 F-100으로 먼저 커밋"
+      "notes": "F-105(크레딧 충전) 이후. 코드는 F-100으로 먼저 커밋"
+    },
+    {
+      "id": "F-105",
+      "type": "chore",
+      "title": "OpenAI 크레딧 충전과 월 지출 상한 설정",
+      "area": "ops",
+      "status": "ready",
+      "owner": "human",
+      "priority": 1,
+      "acceptance": ["gpt-4o-mini 1토큰 호출이 성공한다", "OpenAI 조직의 월 지출 상한이 설정돼 있다"],
+      "verify": {"manual": ["platform.openai.com 결제 화면에서 충전·상한 설정"], "live": ["1토큰 호출"]},
+      "evidence": [{"date": "2026-09-29", "by": "claude", "what": "gpt-4o-mini max_tokens=1 호출", "result": "429 insufficient_quota / credit_balance_exhausted (선불 크레딧 잔액 0)"}],
+      "links": [],
+      "notes": "phase-01의 S3~S8, F-204가 이 항목에 막혀 있다. S1~S2는 모델 호출 없이 진행 가능"
     },
     {
       "id": "F-301",
