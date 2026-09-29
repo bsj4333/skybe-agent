@@ -1,0 +1,331 @@
+{
+  "_readme": {
+    "purpose": "SKIVE 기능·버그 목록. 상태와 검증 증거의 유일한 기준. 규칙은 AGENTS.md §3~§4.",
+    "status_values": ["idea", "spec", "ready", "in_progress", "review", "changes_requested", "passing", "failing", "blocked"],
+    "verify_kinds": {
+      "deterministic": "유료 호출·외부 서비스 없이 반복 가능한 검사 (pytest 등). 에이전트가 판정",
+      "live": "임시 계정으로 실제 Supabase·모델을 쓰는 검사. 에이전트가 실행, 비용 상한 적용",
+      "real_data": "사람의 실제 자료로 사람이 확인. 사람만 통과 처리",
+      "manual": "사람의 결정이나 눈으로 하는 확인. 사람만 통과 처리"
+    },
+    "id_rules": "F-0xx 기존 기능, F-1xx phase-00, F-2xx phase-02, F-3xx 이후 단계, B-0xx 시뮬레이션에서 찾은 버그",
+    "baseline": "2026-09-29 uv run pytest -q → 85 passed, 1 skipped"
+  },
+  "items": [
+    {
+      "id": "F-001",
+      "type": "feature",
+      "title": "계정 가입·로그인과 계정 간 격리 (Auth, RLS, Storage)",
+      "area": "drive",
+      "status": "passing",
+      "owner": null,
+      "priority": 1,
+      "acceptance": ["다른 계정의 폴더·파일·활동·대화·초안이 목록·검색·직접 ID 조회 어디에도 나오지 않는다"],
+      "verify": {
+        "deterministic": ["uv run pytest tests/test_drive_security.py -q"],
+        "live": ["tests/live_drive_smoke.py", "tests/live_drive_workspace.py", "tests/live_drive_activities.py"]
+      },
+      "evidence": [
+        {"date": "2026-09-28", "by": "codex", "what": "임시 2계정 API·RLS·Storage 교차 접근 테스트", "result": "통과 (SKIVE_IMPLEMENTATION_2026-09-28.md)"},
+        {"date": "2026-09-29", "by": "claude", "what": "uv run pytest -q", "result": "85 passed, 1 skipped"}
+      ],
+      "links": ["DRIVE_SETUP.md"],
+      "notes": "배포 전 실제 두 사용자 자료로 재검증, DB 관리자 계정을 최소 권한 역할로 교체 필요 (phase-04)"
+    },
+    {
+      "id": "F-002",
+      "type": "feature",
+      "title": "폴더 구조 그대로 업로드 (TUS 재개)",
+      "area": "drive",
+      "status": "passing",
+      "owner": null,
+      "priority": 1,
+      "acceptance": ["폴더 계층·파일명·번호가 원본과 같다", "중단된 업로드를 같은 파일 재선택으로 재개한다", "Storage 객체 크기가 선언 크기와 같다"],
+      "verify": {
+        "live": ["tests/live_drive_smoke.py", "tests/live_drive_browser.py"],
+        "real_data": ["운영 도구로 실제 폴더 업로드 후 개수·크기·해시 대조"]
+      },
+      "evidence": [
+        {"date": "2026-09-23", "by": "codex", "what": "실제 1,079개 업로드, 크기 불일치 0, 대표 3개 SHA-256 일치", "result": "통과 (DRIVE_IMPORT_EVAL_2026-09-23.md)"}
+      ],
+      "links": ["DRIVE_SETUP.md"],
+      "notes": "브라우저에서 수백 개 파일 업로드 속도는 미측정 (phase-01 S1에서 확인)"
+    },
+    {
+      "id": "F-003",
+      "type": "feature",
+      "title": "원문 추출과 파일별 읽기 카드",
+      "area": "extraction",
+      "status": "passing",
+      "owner": null,
+      "priority": 1,
+      "acceptance": ["지원 형식(md/txt/py/json/csv/pdf/pptx/xlsx/docx 등)은 위치가 붙은 구간으로 추출된다", "미지원·실패 파일에도 이유가 남는다", "모든 삭제되지 않은 파일에 읽기 카드가 있다"],
+      "verify": {
+        "deterministic": ["uv run pytest tests/test_drive_extract.py tests/test_drive_read_card.py -q"],
+        "live": ["tests/live_drive_read_card.py", "tests/live_drive_coverage_ui.py"]
+      },
+      "evidence": [
+        {"date": "2026-09-28", "by": "codex", "what": "실제 1,079개 중 추출 766, 미지원 313, 읽기 카드 누락 0", "result": "통과 (SKIVE_IMPLEMENTATION_2026-09-28.md)"}
+      ],
+      "links": [],
+      "notes": "미지원 313개 = PNG 250, CSS 31, ZIP 11, 폰트 20, 대형 XLSX 1. 이미지 이해는 F-301 참고"
+    },
+    {
+      "id": "F-004",
+      "type": "feature",
+      "title": "레거시 엔진 F01~F05 회귀 테스트 유지",
+      "area": "legacy",
+      "status": "passing",
+      "owner": null,
+      "priority": 2,
+      "acceptance": ["tests/test_p0_regressions.py 전부 통과"],
+      "verify": {"deterministic": ["uv run pytest tests/test_p0_regressions.py -q"]},
+      "evidence": [{"date": "2026-09-29", "by": "claude", "what": "uv run pytest -q", "result": "85 passed, 1 skipped (전체)"}],
+      "links": [],
+      "notes": "레거시는 동결. 기능 추가 없음. F-203에서 검증 로직을 새 경로로 옮길 때 참고 구현"
+    },
+    {
+      "id": "F-010",
+      "type": "feature",
+      "title": "활동 카드와 활동 후보 제안 (합치기·나누기)",
+      "area": "memory",
+      "status": "review",
+      "owner": null,
+      "priority": 1,
+      "acceptance": ["실제 프로젝트 폴더에서 제안된 후보를 합치고 나눠 프로젝트 단위 활동을 만들 수 있다", "엉뚱한 파일이 섞이거나 핵심 파일이 빠지지 않는다"],
+      "verify": {
+        "deterministic": ["uv run pytest tests/test_drive_activities.py tests/test_drive_activity_suggestions.py -q"],
+        "live": ["tests/live_drive_activities.py", "tests/live_drive_activity_ui.py"],
+        "real_data": ["phase-01 S2"]
+      },
+      "evidence": [{"date": "2026-09-28", "by": "codex", "what": "합성 자료·임시 계정 화면 확인", "result": "통과. 실자료 미검증"}],
+      "links": ["harness/build/phase-01-real-data-simulation.md"],
+      "notes": "후보는 폴더 위치와 파일명·첫 구간 단어 겹침에 의존"
+    },
+    {
+      "id": "F-011",
+      "type": "feature",
+      "title": "사실 후보 → 사람 확인 → 활동 MD, 원본 변경 시 갱신 필요 표시",
+      "area": "memory",
+      "status": "review",
+      "owner": null,
+      "priority": 1,
+      "acceptance": ["확인된 사실만 MD 본문에 들어간다", "본인 역할은 사람 확인 없이 확정되지 않는다", "원본 파일이 바뀌면 MD에 갱신 필요가 뜨고 해당 사실은 재검토로 빠진다"],
+      "verify": {
+        "deterministic": ["uv run pytest tests/test_drive_activity_analysis.py tests/test_drive_activity_markdown.py -q"],
+        "live": ["tests/live_drive_activity_pipeline_ui.py"],
+        "real_data": ["phase-01 S3"]
+      },
+      "evidence": [{"date": "2026-09-28", "by": "codex", "what": "합성 보고서로 실제 모델 호출, 원문 일치 1줄 후보", "result": "통과. 실자료 품질 미검증"}],
+      "links": ["SKIVE_SUMMARY_DESIGN.md", "harness/build/phase-01-real-data-simulation.md"],
+      "notes": "파일당 앞·뒤·주석 구간만 모델에 전달 → 중간 구간 사실 누락 가능성. 시뮬에서 확인"
+    },
+    {
+      "id": "F-012",
+      "type": "feature",
+      "title": "공고별 자소서 작업 공간 (공고·문항·대화·초안 버전·본인 진술)",
+      "area": "career",
+      "status": "review",
+      "owner": null,
+      "priority": 1,
+      "acceptance": ["공고와 문항을 저장하고 문항별 초안을 만든다", "근거가 없으면 초안 대신 질문을 남긴다", "사용자 답변은 user_statement로 저장되고 파일 근거로 승격되지 않는다"],
+      "verify": {
+        "deterministic": ["uv run pytest tests/test_drive_career.py -q"],
+        "live": ["tests/live_drive_career.py", "tests/live_drive_career_ui.py"],
+        "real_data": ["phase-01 S8"]
+      },
+      "evidence": [{"date": "2026-09-28", "by": "codex", "what": "임시 2계정 격리, 실제 모델로 본인 진술 초안 작성", "result": "통과. 실자료 미검증"}],
+      "links": ["harness/build/phase-01-real-data-simulation.md"],
+      "notes": "문장별 주장 지지 판정은 없음 → F-203"
+    },
+    {
+      "id": "F-013",
+      "type": "feature",
+      "title": "챗봇·자소서가 확인된 활동 사실과 프로젝트 요약을 원문보다 먼저 사용",
+      "area": "retrieval",
+      "status": "review",
+      "owner": null,
+      "priority": 2,
+      "acceptance": ["다른 계정·삭제·변경된 파일·미확인 후보는 검색 결과에서 빠진다", "답변에 [활동 사실 N] 인용이 붙고 원문을 열 수 있다"],
+      "verify": {
+        "deterministic": ["uv run pytest tests/test_drive_orchestrator.py -q"],
+        "real_data": ["phase-01 S4, S5"]
+      },
+      "evidence": [{"date": "2026-09-28", "by": "codex", "what": "합성 문서와 모의 모델 답변", "result": "통과. 실자료 미검증"}],
+      "links": [],
+      "notes": ""
+    },
+    {
+      "id": "F-100",
+      "type": "chore",
+      "title": "진행 중 변경 커밋과 테스트 기준선 기록 (0016 포함)",
+      "area": "repo",
+      "status": "ready",
+      "owner": null,
+      "priority": 1,
+      "acceptance": ["git status에 실사용자 자료 외 커밋 안 된 변경이 없다", "migrations/0016_drive_project_summaries.sql이 커밋돼 있다", "pytest 85 passed 이상"],
+      "verify": {"deterministic": ["git status --short", "uv run pytest -q"]},
+      "evidence": [],
+      "links": ["harness/build/phase-00-baseline.md"],
+      "notes": "0016은 2026-09-28에 Supabase에 이미 적용됨. Codex 자기 변경만 파일 이름으로 지정해서 커밋"
+    },
+    {
+      "id": "F-101",
+      "type": "chore",
+      "title": "실사용자 자료의 git 추적 여부 결정",
+      "area": "repo",
+      "status": "ready",
+      "owner": "human",
+      "priority": 1,
+      "acceptance": ["원격 저장소 공개 여부 확인", "data/store/2. 화력발전소 이상탐지/, data/profile/, data/user.json 추적 방침을 progress.md에 기록"],
+      "verify": {"manual": ["사람 결정"]},
+      "evidence": [],
+      "links": ["harness/build/phase-00-baseline.md"],
+      "notes": "원격: github.com/bsj4333/skybe-agent"
+    },
+    {
+      "id": "F-102",
+      "type": "chore",
+      "title": "동결 문서에 안내 한 줄 추가",
+      "area": "docs",
+      "status": "blocked",
+      "owner": "claude",
+      "priority": 3,
+      "acceptance": ["PROJECT_STATUS.md, SKIVE_IMPLEMENTATION_2026-09-28.md, SKIVE_SUMMARY_DESIGN.md 맨 위에 '동결, 최신은 harness/progress.md' 안내"],
+      "verify": {"manual": ["문서 확인"]},
+      "evidence": [],
+      "links": ["harness/build/phase-00-baseline.md"],
+      "notes": "F-100 이후. 이 문서들에 Codex의 커밋 안 된 변경이 있어 지금 고치면 섞인다"
+    },
+    {
+      "id": "F-103",
+      "type": "chore",
+      "title": "Live 테스트가 기본으로 사람의 8010 서버를 치지 않게 하기",
+      "area": "tests",
+      "status": "ready",
+      "owner": null,
+      "priority": 2,
+      "acceptance": ["SKIVE_TEST_BASE_URL이 없으면 live UI 테스트가 8010에 요청하지 않고 안내 메시지와 함께 종료한다"],
+      "verify": {"deterministic": ["SKIVE_TEST_BASE_URL 없이 tests/live_drive_career_ui.py 실행 → 즉시 종료 확인"]},
+      "evidence": [],
+      "links": ["harness/build/phase-00-baseline.md"],
+      "notes": "현재 7개 live 파일이 기본값 8010 또는 8012를 사용"
+    },
+    {
+      "id": "F-104",
+      "type": "chore",
+      "title": "ruff를 dev 의존성에 추가할지 결정",
+      "area": "tooling",
+      "status": "idea",
+      "owner": "human",
+      "priority": 3,
+      "acceptance": ["결정 기록. 추가하면 uv run ruff check skive tests 기준선 기록"],
+      "verify": {"manual": ["사람 결정"]},
+      "evidence": [],
+      "links": [],
+      "notes": "uvx ruff는 이 PC의 앱 제어 정책(os error 4551)에 막힘"
+    },
+    {
+      "id": "F-201",
+      "type": "feature",
+      "title": "고정 평가셋 v0 (실패 질문 20건 이상)과 무료 채점",
+      "area": "eval",
+      "status": "idea",
+      "owner": null,
+      "priority": 1,
+      "acceptance": ["각 건에 질문·범위·필수 근거·기대 답·금지 주장이 있다", "유료 호출 없이 Recall@5와 금지 수치 등장 여부를 계산한다"],
+      "verify": {"deterministic": ["채점 스크립트 실행"]},
+      "evidence": [],
+      "links": ["harness/build/phase-02-grounded-retrieval.md"],
+      "notes": "phase-01 결과가 입력"
+    },
+    {
+      "id": "F-202",
+      "type": "bug",
+      "severity": "P2",
+      "title": "챗봇 검색이 정답 파일(report.md)을 상위 결과에 넣지 못함",
+      "area": "retrieval",
+      "status": "failing",
+      "owner": null,
+      "priority": 1,
+      "repro": ["화력발전소 자료가 있는 계정에서", "'오탐 감소 실험에서 F1 최고 후보와 운영 추천 후보의 F1, 이상 발생 전 오탐률, 리드타임 비교' 질문"],
+      "expected": "report.md 근거로 F1 0.2254/0.2061, 오탐률 0.5294/0.0588, 리드타임 197/107분",
+      "actual": "상위 10개 검색 결과에 report.md 없음, '수치를 찾을 수 없다'고 답함 (47초)",
+      "acceptance": ["평가셋 v0 Recall@5 90% 이상", "위 질문에 수치 6개와 출처를 정확히 답함"],
+      "verify": {"live": ["평가셋 채점"], "real_data": ["phase-01 S4"]},
+      "evidence": [{"date": "2026-09-28", "by": "codex", "what": "scripts/compare_agents_api.py", "result": "실패 재현 (AGENTS_API_COMPARISON_2026-09-28.md)"}],
+      "links": ["harness/build/phase-02-grounded-retrieval.md"],
+      "notes": "F-201 이후 착수. 한 번에 한 가지 변경씩 비교"
+    },
+    {
+      "id": "F-203",
+      "type": "feature",
+      "title": "새 경로(자소서·챗봇)에 문장별 근거 판정 이식",
+      "area": "grounding",
+      "status": "idea",
+      "owner": null,
+      "priority": 1,
+      "acceptance": ["초안 문장마다 supported/unsupported/misattributed 판정", "판정 누락 문장은 통과로 치지 않는다", "삭제 후 최종 텍스트를 재검증한다"],
+      "verify": {"deterministic": ["새 회귀 테스트"], "live": ["임시 계정 초안 생성"], "real_data": ["phase-01 S8"]},
+      "evidence": [],
+      "links": ["harness/build/phase-02-grounded-retrieval.md", "skive/writer.py"],
+      "notes": "레거시 writer.py의 F04 로직이 참고 구현"
+    },
+    {
+      "id": "F-204",
+      "type": "feature",
+      "title": "프로젝트 통합 요약 v2 품질 확인",
+      "area": "memory",
+      "status": "blocked",
+      "owner": null,
+      "priority": 2,
+      "acceptance": ["화력발전소 1개 폴더 재실행에서 검증 통과 근거 수가 첫 실행(1개)보다 크게 늘어난다", "본인 역할은 질문으로 남는다"],
+      "verify": {"live": ["폴더 1개 재분석"], "real_data": ["사람이 보고서 품질 확인"]},
+      "evidence": [{"date": "2026-09-28", "by": "codex", "what": "화력발전소 54폴더·369파일 첫 실행", "result": "원문 근거 1개만 검증 통과. 재실행은 OpenAI 한도로 차단"}],
+      "links": ["SKIVE_IMPLEMENTATION_2026-09-28.md"],
+      "notes": "OpenAI 한도 해제 확인 필요. 코드는 F-100으로 먼저 커밋"
+    },
+    {
+      "id": "F-301",
+      "type": "feature",
+      "title": "결과 그래프 PNG 이해 (이미지 읽기)",
+      "area": "extraction",
+      "status": "idea",
+      "owner": null,
+      "priority": 3,
+      "acceptance": [],
+      "verify": {},
+      "evidence": [],
+      "links": [],
+      "notes": "비목표로 두었으나 화력발전소 미지원 250개가 대부분 PNG. phase-01에서 결과 수치가 그래프에만 있는 경우가 많으면 재검토"
+    },
+    {
+      "id": "F-302",
+      "type": "feature",
+      "title": "Google Drive 스냅샷 가져오기",
+      "area": "drive",
+      "status": "idea",
+      "owner": null,
+      "priority": 2,
+      "acceptance": [],
+      "verify": {},
+      "evidence": [],
+      "links": ["harness/goal.md"],
+      "notes": "phase-02 이후 설계. drive.readonly는 민감 범위라 다수 사용자 공개 시 Google 심사 필요"
+    },
+    {
+      "id": "F-401",
+      "type": "feature",
+      "title": "HTTPS 배포와 10~20명 베타",
+      "area": "deploy",
+      "status": "idea",
+      "owner": null,
+      "priority": 2,
+      "acceptance": [],
+      "verify": {},
+      "evidence": [],
+      "links": ["harness/goal.md"],
+      "notes": "Supabase 커넥션 풀러(6543) 사용 중. 앱 내 커넥션 재사용, 관리 DB 계정 최소 권한화 필요"
+    }
+  ]
+}

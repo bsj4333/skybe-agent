@@ -5,3 +5,6 @@ data/sessions.sqlite3
 data/sessions.sqlite3-shm
 data/sessions.sqlite3-wal
 .pytest-drive-eval/
+
+# 루트 .gitignore의 build/(파이썬 빌드 산출물)가 하네스 설계 폴더까지 무시하지 않게 한다.
+!harness/build/
