@@ -132,6 +132,7 @@ Claude Code는 `CLAUDE.md`에서 이 파일을 불러온다. 규칙을 바꿀 �
 | 지금 상태, 누가 무엇을 하는지, 세션 기록 | `harness/progress.md` |
 | 기능·버그와 완료 조건, 검증 증거 | `harness/feature_list.json` |
 | 여러 작업에 걸친 설계 | `harness/build/phase-NN-이름.md` (양식: `_TEMPLATE.md`) |
+| 여러 단계에 걸친 공통 설계 (예: 모델 배치) | `harness/build/design-주제.md` |
 | 시뮬레이션·검토·실험 결과 | `harness/reviews/YYYY-MM-DD-주제.md` |
 | 설치·키·실행 방법 | `DRIVE_SETUP.md` (설정 부분만 갱신) |
 

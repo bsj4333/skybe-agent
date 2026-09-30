@@ -8,3 +8,10 @@ data/sessions.sqlite3-wal
 
 # 루트 .gitignore의 build/(파이썬 빌드 산출물)가 하네스 설계 폴더까지 무시하지 않게 한다.
 !harness/build/
+
+# 실사용자 자료. 원격이 공개 저장소라 올리지 않는다. samples/ 기반 *_raw 예제만 추적한다.
+# data/user.json은 합성 인물 버전만 추적하고, 이 PC의 실제 값은 skip-worktree로 숨긴다.
+data/store/*
+!data/store/*_raw/
+data/outputs/apply_job_[0-9]*.json
+data/uploads/
