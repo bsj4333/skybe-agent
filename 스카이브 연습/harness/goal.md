@@ -64,4 +64,4 @@
 - 개발: 사람 1명 + Codex(구현) + Claude(설계·평가)
 - 비용: Supabase Pro 고정비 + OpenAI 종량제. 유료 호출은 `AGENTS.md` §8 상한을 따른다
 - 환경: Windows 개발 PC, 한글 경로, 공유 Supabase 프로젝트 하나
-- 모델: 분석·작성 `gpt-4o-mini`, 판정 `gpt-4o`, 임베딩 `text-embedding-3-small` (환경변수로 바꿀 수 있음)
+- 모델: `gpt-6-luna`(기본)와 `gpt-6-sol`(중요 작업). `gpt-6-astra`는 쓰지 않는다. 작업별 배치는 `build/design-model-routing.md`. 현재 코드는 아직 `gpt-4o-mini`/`gpt-4o` (F-205에서 전환)

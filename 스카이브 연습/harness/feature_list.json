@@ -598,7 +598,7 @@
       "id": "F-106",
       "type": "bug",
       "severity": "P1",
-      "title": "프로젝트 통합 요약의 기본 모델이 최상위 모델(gpt-6-astra)로 하드코딩됨",
+      "title": "gpt-6-astra 기본값·사용 경로 제거 (astra 사용 금지)",
       "area": "cost",
       "status": "ready",
       "owner": null,
@@ -606,12 +606,12 @@
       "repro": [
         "SKIVE_PROJECT_AGENT_MODEL 환경변수 없이 프로젝트 통합 요약 실행"
       ],
-      "expected": "저가·중간 등급 모델로 돌거나, 모델 미지정 오류로 멈춘다",
+      "expected": "astra가 선택될 수 있는 경로가 없다",
       "actual": "skive/drive_project_summary.py:27 DEFAULT_MODEL = \"gpt-6-astra\" ($10/$50 per 1M tokens)로 실행된다",
       "acceptance": [
-        "환경변수 없이 실행하면 astra가 선택되지 않는다",
-        "astra는 SKIVE_ALLOW_T3=1일 때만 허용된다",
-        "scripts/compare_agents_api.py의 기본값도 같은 규칙을 따른다"
+        "skive/, scripts/ 어디에도 gpt-6-astra 기본값이 없다",
+        "환경변수로 astra를 지정하면 명확한 오류로 멈춘다",
+        "프로젝트 요약 기본 모델은 design-model-routing.md §3 표를 따른다 (F-205 전까지는 gpt-6-luna, reasoning high)"
       ],
       "verify": {
         "deterministic": [
@@ -622,21 +622,23 @@
       "links": [
         "harness/build/design-model-routing.md"
       ],
-      "notes": "T2 기본 모델 이름은 사람 결정 전까지 gpt-4o로 둔다"
+      "notes": "사람 결정(2026-09-30): astra는 쓰지 않는다. 9/28 첫 프로젝트 요약과 크레딧 소진이 이 기본값으로 돈 것으로 보인다"
     },
     {
       "id": "F-205",
       "type": "feature",
-      "title": "작업 이름 → 모델 표 도입과 호출별 토큰·비용 기록",
+      "title": "작업 이름 → (모델, 추론 강도, 출력 상한) 표 도입, 에이전트 루프 Responses API 전환, 호출 기록",
       "area": "cost",
       "status": "spec",
       "owner": null,
       "priority": 2,
       "acceptance": [
-        "모든 모델 호출이 get_llm(task=...)처럼 작업 이름으로 모델을 받는다",
+        "모든 모델 호출이 get_llm(task=...)처럼 작업 이름으로 모델·추론 강도·max_output_tokens를 받는다 (design-model-routing.md §3)",
         "코드에 모델 이름 문자열 하드코딩이 없다 (표 한 곳 제외)",
-        "호출마다 작업·모델·토큰·예상 비용·시간이 기록된다",
-        "작업별 도구 회전 수·시간·비용 상한이 적용된다"
+        "도구를 쓰는 에이전트 루프(drive_orchestrator 등)가 Responses API로 luna/sol + reasoning effort를 쓸 수 있다",
+        "호출마다 작업·모델·강도·입력/출력 토큰·예상 비용·시간이 기록된다",
+        "insufficient_quota는 재시도하지 않고 사용자에게 안내된다",
+        "사용자당·작업당 금액 상한은 두지 않는다. 도구 회전 수·시간·출력 토큰 상한만 적용한다"
       ],
       "verify": {
         "deterministic": [
@@ -653,7 +655,7 @@
     {
       "id": "F-206",
       "type": "feature",
-      "title": "자체 루프 vs Agents API, 모델 등급 통제 실험 (A~D)",
+      "title": "모델·실행 기반 통제 실험 (A 4o-mini / B luna / C sol / D Agents API) + luna 한국어 추출 품질",
       "area": "eval",
       "status": "idea",
       "owner": null,
@@ -718,6 +720,110 @@
         "harness/goal.md"
       ],
       "notes": "Supabase 커넥션 풀러(6543) 사용 중. 앱 내 커넥션 재사용, 관리 DB 계정 최소 권한화 필요"
+    },
+    {
+      "id": "B-001",
+      "type": "bug",
+      "severity": "P1",
+      "scenario": "S1",
+      "title": "2026-09-29 업로드 3,193개가 추출 대기열에 들어가지 않음",
+      "area": "drive",
+      "status": "failing",
+      "owner": null,
+      "priority": 1,
+      "repro": [
+        "계정의 'Local Experience Archive 2026-09-29' 폴더 파일 상태 조회"
+      ],
+      "expected": "업로드 완료 파일은 analysis_status='queued'이고 drive_jobs에 작업이 있다 (drive_api complete_file, import_local_drive와 동일)",
+      "actual": "upload_status='uploaded', analysis_status='waiting', drive_jobs 없음 3,193개. 이 저장소에는 해당 폴더를 만든 코드가 없다",
+      "acceptance": [
+        "어떤 도구로 올렸는지 확인하고, 그 경로도 완료 시 대기열에 넣는다",
+        "대기 파일 중 50MiB 이하는 추출 작업이 생성되고 워커가 처리한다 (모델 호출 없음)",
+        "처리 후 ready/unsupported/failed 개수를 사람에게 보고"
+      ],
+      "verify": {
+        "live": [
+          "읽기 전용 SQL로 waiting 0건 확인"
+        ],
+        "real_data": [
+          "phase-01 S1"
+        ]
+      },
+      "evidence": [
+        {
+          "date": "2026-09-30",
+          "by": "claude",
+          "what": "읽기 전용 SQL",
+          "result": "3,246개 중 waiting 3,193 (job 없음), unsupported 53, Storage 객체 3,193개 크기 일치"
+        }
+      ],
+      "links": [
+        "harness/build/phase-01-real-data-simulation.md"
+      ],
+      "notes": "대기열에 넣는 것은 사람 계정 데이터 쓰기라 사람 승인 필요. 업로드 시각 2026-09-29 21:52~23:22 KST"
+    },
+    {
+      "id": "B-002",
+      "type": "bug",
+      "severity": "P1",
+      "scenario": "S1",
+      "title": "50MiB 초과 파일이 조각(parts/N)으로 저장됐지만 앱은 0바이트 대표 객체만 봄",
+      "area": "drive",
+      "status": "failing",
+      "owner": null,
+      "priority": 1,
+      "repro": [
+        "어제 올린 zip/csv/safetensors/mp4 중 50MiB 초과 파일을 SKIVE 화면에서 다운로드"
+      ],
+      "expected": "원본 전체가 내려받아진다 (드라이브는 원본 그대로 원칙)",
+      "actual": "drive_files.storage_path의 객체는 0바이트. 실제 내용은 {uid}/{file_id}/parts/N 823개(33.4GB)에 있고 drive_files와 연결 기록이 없다",
+      "acceptance": [
+        "조각 목록을 DB에 기록하거나 다운로드 시 조각을 이어 붙여 원본과 같은 바이트를 돌려준다",
+        "원본 크기·해시 대조 테스트",
+        "조각 객체가 고아로 오인돼 삭제되지 않는다"
+      ],
+      "verify": {
+        "deterministic": [
+          "조각 이어 붙이기 단위 테스트"
+        ],
+        "live": [
+          "임시 계정 대용량 파일 왕복"
+        ],
+        "real_data": [
+          "대표 파일 1개 해시 대조"
+        ]
+      },
+      "evidence": [
+        {
+          "date": "2026-09-30",
+          "by": "claude",
+          "what": "읽기 전용 SQL",
+          "result": "크기 불일치 53개(선언 33.4GB, 대표 객체 0바이트), parts 객체 823개 33.4GB, 두 번째 경로가 50MiB 초과 파일 ID와 50/53 일치"
+        }
+      ],
+      "links": [],
+      "notes": "AGENTS.md §5 '드라이브는 원본 그대로' 관련. 업로드 도구 확인(B-001)과 함께 설계 필요"
+    },
+    {
+      "id": "B-003",
+      "type": "chore",
+      "severity": "P3",
+      "title": "2026-09-23 시험 계정이 남긴 고아 Storage 객체 12개 정리",
+      "area": "ops",
+      "status": "idea",
+      "owner": "human",
+      "priority": 3,
+      "acceptance": [
+        "사람 승인 후 삭제, 삭제 전 목록 기록"
+      ],
+      "verify": {
+        "manual": [
+          "사람 승인"
+        ]
+      },
+      "evidence": [],
+      "links": [],
+      "notes": "사람 계정 경로가 아닌 접두. 2026-09-23 08:08~08:27 생성"
     }
   ]
 }
