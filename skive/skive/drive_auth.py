@@ -20,7 +20,8 @@ def public_config() -> dict[str, str]:
     key = os.getenv("SUPABASE_PUBLISHABLE_KEY", "") or os.getenv("SUPABASE_ANON_KEY", "")
     if not url.startswith("https://") or not key:
         raise HTTPException(503, "SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY are not configured")
-    return {"url": url, "key": key, "bucket": "skive-originals"}
+    return {"url": url, "key": key, "bucket": "skive-originals",
+            "google_client_id": os.getenv("GOOGLE_CLIENT_ID", "")}
 
 
 def current_user_id(credentials: HTTPAuthorizationCredentials | None = Depends(bearer)) -> UUID:

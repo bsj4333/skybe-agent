@@ -99,3 +99,14 @@ uv run python -m scripts.import_local_drive 'C:\path\to\folder' --user-email 'yo
 1. Render에서 New → Blueprint로 이 저장소를 연결하고, 브랜치 `skive-agent`, Blueprint 경로 `skive/render.yaml`을 고른다.
 2. 대시보드에서 `render.yaml`의 환경 변수 값을 입력한다. 값은 저장소에 넣지 않는다.
 3. 발급된 주소를 Supabase의 Authentication → URL Configuration에서 Site URL과 Redirect URLs에 넣는다. 그래야 가입 인증 메일이 배포 주소로 돌아온다.
+
+## 구글 드라이브 가져오기
+
+브라우저가 구글 로그인으로 받은 토큰으로 드라이브를 읽고, 기존 업로드 경로로 Storage에 넣는다. 토큰은 페이지 메모리에만 있고 서버에 저장하지 않는다. 비밀 키 없이 공개 Client ID만 쓴다.
+
+1. Google Cloud에서 프로젝트를 만들고 Google Drive API를 사용 설정한다.
+2. OAuth 동의 화면을 External, Testing으로 두고 쓸 구글 계정을 테스트 사용자로 추가한다.
+3. 사용자 인증 정보에서 OAuth 클라이언트 ID(웹 애플리케이션)를 만들고, 승인된 JavaScript 원본에 배포 주소를 넣는다.
+4. 배포 환경 변수 `GOOGLE_CLIENT_ID`에 값을 넣는다. 비어 있으면 버튼이 숨겨진다.
+
+토큰은 약 1시간 유효하다. 같은 항목을 다시 가져오면 파일이 중복으로 생긴다. Google 문서는 docx·xlsx·pptx로 변환하고, 바로가기처럼 파일이 아닌 항목은 건너뛴다.
