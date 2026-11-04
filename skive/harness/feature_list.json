@@ -1166,9 +1166,15 @@
           "by": "codex",
           "what": "git push origin HEAD:refs/heads/skive-agent; git ls-remote --heads origin skive-agent",
           "result": "Publication succeeded. Implementation commit 2c2fd6de7949c9c9448958a96cf084fd6105194f matches remote branch head. Only skive/ plus root .gitignore in the latest tree. Working tree clean; old history retained."
+        },
+        {
+          "date": "2026-11-04",
+          "by": "codex",
+          "what": "Shared-pooler dotenv configuration and read-only DB check",
+          "result": "DNS and TLS connection succeeded; SELECT 1 returned 1. No skive schema/tables and zero Storage buckets. Previous dotenv backed up; credentials stay ignored."
         }
       ],
-      "notes": "Implementation and authorized GitHub publication complete; awaiting independent design review. Old exercises, credentials, runtime data and backups remain local. New Supabase DB URI still needs IPv4 shared-pooler configuration; no migrations or user-data writes performed."
+      "notes": "Implementation and authorized GitHub publication complete; awaiting independent design review. Old exercises, credentials, runtime data and backups remain local. New Supabase shared-pooler connection verified with read-only SELECT 1 on 2026-11-04; skive schema absent and zero Storage buckets. Initial setup pending; no migrations or user-data writes performed."
     }
   ]
 }

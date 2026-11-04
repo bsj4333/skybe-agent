@@ -6,8 +6,8 @@
 
 - Active app: standalone `skive/` project. Practice examples are archived locally outside the published tree.
 - Configuration: app-local `.env`; explicit deployment environment wins. Parent-folder credentials are never loaded.
-- Supabase: a different project is being configured. New publishable/secret keys passed read-only HTTP checks; Storage has zero buckets. The submitted dedicated-pooler URI cannot resolve on this PC; an IPv4 shared-pooler URI is pending. No schema or user-data writes were made.
-- OpenAI: user reports purchasing API credit. Credit availability was not tested; no paid model calls were made in this session.
+- Supabase: 새 프로젝트에 마이그레이션 `0001`~`0016` 적용 완료(2026-11-04, 사람 승인). 테이블 33개, 비공개 버킷 `skive-originals`, Storage 정책 2개. 사용자·파일 0건(이전 프로젝트 자료는 이전되지 않음). 이전 프로젝트는 DNS 기록이 없어 접속 불가.
+- OpenAI: `.env`의 키는 인증되지만(모델 목록 200) 1토큰 호출이 `429 credit_balance_exhausted`(2026-11-04). 이 키는 이전 키와 같고, 최신 키 파일에는 OpenAI 키가 없고 Claude 키만 있다. 앱은 아직 OpenAI 어댑터만 쓴다 → 모델 기능은 F-105 전까지 멈춤.
 - Publication: user explicitly authorized app-only GitHub publication. Credentials, backups, runtime data, and exercises are excluded.
 - Checks: the local app and a source-only publication snapshot both pass 88 tests (4 skipped: 3 optional live-DB checks and 1 existing skip). Standalone dependency lock, source compilation, Markdown links, and HTTP startup/assets are verified under F-108.
 
@@ -118,3 +118,15 @@
 - 검증: 자체 `uv sync --offline`, `uv lock --check`, 컴파일, 문서 링크 검사 통과. 로컬과 `.env`·개인 자료가 없는 게시용 복사본에서 각각 `88 passed, 4 skipped`. 복사본의 임시 서버 홈·업로드 JS·자소서 JS·OpenAPI·공개 설정 모두 HTTP 200, 임시 서버 종료. 공개 후보와 기존 미푸시 커밋 3개의 비밀값 검사에서 검출 0건. 사용자 승인한 원격 브랜치에 게시한다.
 - 새 Supabase 키는 읽기 전용 HTTP 검사에 성공했지만 DB URI의 호스트 조회가 실패해 IPv4 공유 pooler 주소를 기다린다. DB 스키마·Storage 초기화·기존 데이터 이전은 실행하지 않았다. Supabase MCP 연결도 계정 OAuth 승인 전이다. 앱의 실제 사용자 자료 분석·모델 품질 검증은 이 결과에 포함하지 않는다.
 - 게시 완료: `git push origin HEAD:refs/heads/skive-agent` 성공. 구현 커밋 `2c2fd6d`와 GitHub 원격 HEAD 일치 확인. 처음 403이 발생했지만 인증 재확인 후 재시도는 성공했다. 최신 트리는 `skive/`와 루트 `.gitignore`만 포함하며 기존 Git 이력은 유지했다.
+
+### 2026-11-04 - Codex: shared-pooler connection verification
+
+- User authorized testing the supplied shared-pooler URI and DB password; saved the percent-encoded URI only in the ignored app-local .env and backed up its prior contents.
+- DNS resolution, TLS connection and read-only SELECT 1 succeeded. Metadata queries confirmed no skive schema/tables and zero Storage buckets.
+- No migrations, Storage changes, user-data writes, model calls or server launches. Next: initialize the new project schema and private Storage configuration; older-project data is not migrated.
+
+### 2026-11-04 · claude — 새 Supabase 초기화와 연결 검증
+- 사람 지시로 새 프로젝트에 마이그레이션 16개를 적용했다. 드라이브 테이블 전부 RLS 켜짐, `anon` 조회 불가 확인. 기존 `public.skive` 빈 테이블은 건드리지 않았다.
+- `tests/live_drive_smoke.py` 통과: 로그인, TUS 끊김 재개, 추출 워커, 메타데이터 RLS, Storage 격리. 임시 계정·파일은 삭제했고 사용자·객체·파일 모두 0건.
+- 임시 사용자 1명을 둔 `pytest -q`: 90 passed, 2 skipped. `test_reanalyze_cannot_queue_another_users_file`은 파일이 없어 건너뛰었다. 서버는 8020에서 기동 확인 후 종료, `/api/drive/config`는 새 주소를 주고 비밀 키는 노출하지 않는다.
+- 남은 일: F-105(OpenAI 크레딧 또는 Claude 어댑터 결정), 사람 자료 재업로드, 브라우저 UI 로그인 확인. 이전 프로젝트 자료(파일 4,325개)는 복구 경로가 확인되지 않았다.
