@@ -9,6 +9,7 @@ import json
 import hashlib
 import shutil
 import tempfile
+import threading
 import time
 from contextlib import contextmanager
 from pathlib import Path
@@ -249,6 +250,9 @@ def main():
     secret_key = os.getenv("SUPABASE_SECRET_KEY", "") or os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
     if not base_url.startswith("https://") or not secret_key:
         raise SystemExit("Worker needs SUPABASE_URL and server-only SUPABASE_SECRET_KEY in .env")
+    from skive.drive_google import google_import_loop
+
+    threading.Thread(target=google_import_loop, daemon=True).start()
     while True:
         if not run_once(base_url, secret_key):
             from skive.drive_activity_analysis import run_activity_analysis_once

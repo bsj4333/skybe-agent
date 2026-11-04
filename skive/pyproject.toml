@@ -24,6 +24,7 @@ dependencies = [
     "uvicorn[standard]>=0.38.0",
     "anthropic>=2.4.0",
     "psycopg-pool>=3.3.3",
+    "cryptography>=50.0.2",
 ]
 
 [dependency-groups]

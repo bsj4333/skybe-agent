@@ -46,6 +46,7 @@
     .read-card-sample{display:block;width:100%;padding:10px 12px;margin:6px 0;text-align:left;line-height:1.5;border:1px solid #dce5e7;border-radius:9px;background:#fff;color:#202124;cursor:pointer;overflow-wrap:anywhere}.read-card-sample:hover{background:#eef7f5}.read-card-chunk{padding:14px;background:#f7f9fa;border:1px solid #e1e7e9;border-radius:9px;white-space:pre-wrap;overflow-wrap:anywhere;max-height:340px;overflow:auto}
     .activity-suggestion{padding:10px 0;border-top:1px solid #e1e7e9}.activity-suggestion summary{cursor:pointer;font-weight:600}.activity-suggestion>input,.activity-suggestion>select{padding:8px;margin:8px 8px 8px 0;max-width:100%;border:1px solid #cbd5da;border-radius:8px}.suggestion-files{max-height:220px;overflow:auto;padding:8px;border:1px solid #e1e7e9;border-radius:8px;margin:8px 0}.suggestion-files label{display:block;padding:4px 0;overflow-wrap:anywhere}
     .activity-fact{padding:13px;margin:12px 0;border:1px solid #d9e3e5;border-radius:11px;line-height:1.5}.activity-fact blockquote{margin:10px 0;padding:8px 13px;border-left:3px solid #9abfba;background:#f5f9f8;overflow-wrap:anywhere}.activity-fact input,.activity-fact select{padding:8px;margin:4px;border:1px solid #cbd5da;border-radius:8px;max-width:100%}.activity-fact input{min-width:250px;max-width:95%}.activity-fact button{margin:4px}
+    #gdrive-banner[hidden],#google-card[hidden]{display:none!important}
     #app.drop-active{outline:3px dashed #2563eb;outline-offset:-6px}
     #app.drop-active::after{content:"놓으면 지금 보고 있는 폴더에 올립니다";position:fixed;left:50%;bottom:32px;transform:translateX(-50%);padding:10px 16px;border-radius:8px;background:#2563eb;color:#fff;font-weight:600;z-index:50;pointer-events:none}
   </style>
@@ -62,10 +63,10 @@
   <div id="app" hidden>
     <header><button id="brand-home" class="brand brand-home" type="button" title="내 드라이브 처음으로"><span>SKIVE</span> Drive</button><input id="search" class="search" placeholder="내 드라이브에서 검색" aria-label="내 드라이브 검색"><div id="account" class="account"></div><button id="signout" class="small">로그아웃</button></header>
     <main><aside><button id="new-menu" class="primary">＋ 새로 만들기</button><button id="home" class="side active">내 드라이브</button><button id="nav-profile" class="side">프로필</button><button id="nav-chat" class="side">챗봇</button><button id="nav-essays" class="side">자소서</button><button id="refresh" class="side">새로고침</button></aside>
-    <section id="drive-section"><nav id="breadcrumbs" class="breadcrumbs" aria-label="폴더 경로"></nav><div class="toolbar"><button id="new-folder">새 폴더</button><button id="upload-files">파일 업로드</button><button id="upload-folder">폴더 업로드</button><button id="import-gdrive" hidden>구글 드라이브</button><button id="project-summary" hidden>프로젝트 통합 요약</button><button id="open-activities">활동 카드</button><button id="chat-current-folder" hidden>이 폴더로 대화</button><span class="muted" id="count"></span></div>
+    <section id="drive-section"><nav id="breadcrumbs" class="breadcrumbs" aria-label="폴더 경로"></nav><div id="gdrive-banner" class="workspace-card" hidden style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px"><span style="flex:1;min-width:220px">구글 드라이브를 연동하면 과제와 프로젝트 폴더를 바로 가져올 수 있어요.</span><button id="gdrive-banner-connect" class="primary">구글 드라이브 연동하기</button><button id="gdrive-banner-later">나중에</button></div><div class="toolbar"><button id="new-folder">새 폴더</button><button id="upload-files">파일 업로드</button><button id="upload-folder">폴더 업로드</button><button id="import-gdrive" hidden>구글 드라이브</button><button id="project-summary" hidden>프로젝트 통합 요약</button><button id="open-activities">활동 카드</button><button id="chat-current-folder" hidden>이 폴더로 대화</button><span class="muted" id="count"></span></div>
     <div id="sync-status" hidden><span id="sync-label"></span><progress id="sync-progress" max="100" value="0"></progress></div>
     <div class="list-shell"><div class="drive-table" role="table" aria-label="드라이브 파일 목록"><div class="drive-row drive-head" role="row"><button class="sort-button" data-sort="name" aria-sort="ascending">이름 ↑</button><button class="sort-button" data-sort="date">수정 날짜</button><button class="sort-button" data-sort="size">파일 크기</button><span>읽기 상태</span><span aria-label="더보기"></span></div><div id="items" role="rowgroup"></div></div></div><p id="empty" class="muted" hidden>이 폴더는 비어 있습니다. 파일이나 폴더를 추가해 보세요.</p></section>
-    <section id="profile-section" hidden><h1 class="workspace-title">내 프로필</h1><p class="workspace-note">여기에 적은 내용은 본인 진술로 저장됩니다. 파일에서 확인된 사실과 구분해서 사용합니다.</p><div class="workspace-card"><div class="field-grid"><label class="field">이름<input id="profile-name" maxlength="100"></label><label class="field">학교<input id="profile-school" maxlength="200"></label><label class="field">전공<input id="profile-major" maxlength="200"></label><label class="field">학년·시기<input id="profile-grade" maxlength="100"></label><label class="field wide">진로 목표<textarea id="profile-goal" maxlength="3000"></textarea></label><label class="field wide">내가 직접 적는 경험 메모<textarea id="profile-notes" maxlength="10000" placeholder="본인 역할이나 경험을 적어주세요. 자료 근거가 확인되기 전에는 본인 진술로 표시됩니다."></textarea></label><label class="field wide">자소서 문체 지침<textarea id="profile-style" maxlength="3000" placeholder="비우면 기본 문체를 사용합니다."></textarea></label></div><button id="profile-save" class="workspace-action">프로필 저장</button></div><div class="workspace-card"><h2>내 활동과 자료</h2><p class="muted">자료가 연결된 활동 목차입니다. 강점·성과로 확정된 내용은 아닙니다.</p><div id="profile-activities"></div></div></section>
+    <section id="profile-section" hidden><h1 class="workspace-title">내 프로필</h1><p class="workspace-note">여기에 적은 내용은 본인 진술로 저장됩니다. 파일에서 확인된 사실과 구분해서 사용합니다.</p><div id="google-card" class="workspace-card" hidden style="margin-bottom:16px"><h2 style="margin:0 0 6px;font-size:18px">구글 드라이브</h2><p id="google-state" class="workspace-note"></p><div style="display:flex;gap:8px;flex-wrap:wrap"><button id="google-connect" class="primary">구글 드라이브 연동하기</button><button id="google-import" hidden>폴더 가져오기</button><button id="google-disconnect" hidden>연결 해제</button></div></div><div class="workspace-card"><div class="field-grid"><label class="field">이름<input id="profile-name" maxlength="100"></label><label class="field">학교<input id="profile-school" maxlength="200"></label><label class="field">전공<input id="profile-major" maxlength="200"></label><label class="field">학년·시기<input id="profile-grade" maxlength="100"></label><label class="field wide">진로 목표<textarea id="profile-goal" maxlength="3000"></textarea></label><label class="field wide">내가 직접 적는 경험 메모<textarea id="profile-notes" maxlength="10000" placeholder="본인 역할이나 경험을 적어주세요. 자료 근거가 확인되기 전에는 본인 진술로 표시됩니다."></textarea></label><label class="field wide">자소서 문체 지침<textarea id="profile-style" maxlength="3000" placeholder="비우면 기본 문체를 사용합니다."></textarea></label></div><button id="profile-save" class="workspace-action">프로필 저장</button></div><div class="workspace-card"><h2>내 활동과 자료</h2><p class="muted">자료가 연결된 활동 목차입니다. 강점·성과로 확정된 내용은 아닙니다.</p><div id="profile-activities"></div></div></section>
     <section id="chat-section" hidden><h1 class="workspace-title">자료와 대화</h1><p class="workspace-note">전체 드라이브를 검색하거나 폴더 범위를 좁힐 수 있습니다. 답변의 출처를 눌러 원문 추출 위치를 확인하세요.</p><div class="chat-layout"><div class="chat-sessions"><button id="chat-new">＋ 새 대화</button><div id="chat-session-list"></div></div><div class="chat-panel"><div class="chat-tools"><span>자료 범위</span><select id="chat-scope" aria-label="대화 자료 범위"><option value="">전체 드라이브</option></select><span id="chat-scope-note" class="muted">범위를 선택하고 새 대화를 시작하세요.</span></div><div id="chat-log" class="chat-log"><p class="muted">내 자료에 대해 질문하거나 BOM·CAPA 같은 개념을 물어보세요.</p></div><div class="chat-composer"><textarea id="chat-input" placeholder="예: 3학년 SCM 수업에서 BOM은 무엇을 배웠지?"></textarea><button id="chat-send">보내기</button></div></div></div></section>
     <section id="essays-section" hidden><h1 class="workspace-title">자소서 작성</h1><p class="workspace-note">공고와 문항을 붙이면 로그인 계정의 읽힌 파일에서 관련 근거를 찾아 초안을 만듭니다. 본인 역할과 문장별 출처는 반드시 확인하세요.</p><div class="essay-layout"><div class="essay-list"><strong>저장된 초안</strong><div id="essay-list"></div></div><div><div class="workspace-card" style="margin-top:0"><div class="field-grid"><label class="field wide">공고 내용<textarea id="essay-job" style="min-height:130px" placeholder="회사·직무·요구사항을 붙여 넣으세요."></textarea></label><label class="field wide">자소서 문항<textarea id="essay-question" placeholder="예: 본인의 강점이 드러난 경험을 서술하세요."></textarea></label><label class="field wide">참고 자료 범위<select id="essay-scope"><option value="">전체 드라이브</option></select></label></div><button id="essay-create" class="workspace-action">근거 찾아 초안 만들기</button></div><div class="workspace-card"><h2 id="essay-title" style="margin-top:0">초안을 선택하거나 새로 만드세요</h2><p class="muted">AI 초안 · 본인 역할과 수치 확인 필요</p><div id="essay-draft" class="essay-draft"></div><div id="essay-sources" class="citation-list"></div><div class="essay-revise"><textarea id="essay-instruction" placeholder="예: 첫 문단을 더 간결하게 고쳐줘"></textarea><button id="essay-revise" class="workspace-action" disabled>대화하듯 수정하기</button></div></div></div></div></section></main>
   </div>
@@ -506,10 +507,6 @@
       const state=uploadState,id=++state.nextId,view=progressItem(task.relative);
       state.active.set(id,0);scheduleUploadPaint();
       try{
-        if(task.file.load){ // Remote files are fetched only when their turn comes, so few sit in memory.
-          view.state.textContent='구글 드라이브에서 받는 중';
-          const loaded=await task.file.load();state.totalBytes+=loaded.size-task.file.size;task.file=loaded;
-        }
         await uploadOne(task.file,task.parentId,task.relative,(sent,total)=>{
           state.active.set(id,sent);view.bar.value=total?Math.round(sent/total*100):100;
           view.state.textContent=`전송 중 · ${view.bar.value}%`;scheduleUploadPaint();
@@ -556,83 +553,46 @@
       }
       scheduleUploadPaint();pumpUploads();
     }
-    const GDRIVE_API='https://www.googleapis.com/drive/v3';
     const GDRIVE_FOLDER='application/vnd.google-apps.folder';
-    const GDRIVE_EXPORTS={ // Google-native files have no bytes of their own, so they are exported.
-      'application/vnd.google-apps.document':['application/vnd.openxmlformats-officedocument.wordprocessingml.document','.docx'],
-      'application/vnd.google-apps.spreadsheet':['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','.xlsx'],
-      'application/vnd.google-apps.presentation':['application/vnd.openxmlformats-officedocument.presentationml.presentation','.pptx'],
-    };
-    const gdrive={token:null,expires:0,trail:[],selected:new Map()};
-    function loadGoogleIdentity(){
-      if(window.google?.accounts?.oauth2)return Promise.resolve();
-      return new Promise((ok,no)=>{const script=document.createElement('script');script.src='https://accounts.google.com/gsi/client';script.onload=ok;script.onerror=()=>no(new Error('구글 로그인 모듈을 불러오지 못했습니다'));document.head.append(script)});
+    const gdrive={status:null,trail:[],selected:new Map(),watching:false};
+    const googleApi=(path,options={})=>api('/google'+path,options);
+    function dismissedGoogleBanner(){try{return localStorage.getItem('skive-google-banner')==='off'}catch{return false}}
+    function paintGoogle(){
+      const status=gdrive.status;if(!status)return;
+      const ready=status.connected&&!status.needs_reconnect;
+      el('google-card').hidden=!status.enabled;el('import-gdrive').hidden=!status.enabled;
+      el('gdrive-banner').hidden=!status.enabled||status.connected||dismissedGoogleBanner();
+      el('google-state').textContent=status.needs_reconnect?'구글 연결이 만료되었습니다. 다시 연동해 주세요.':
+        status.connected?`연결됨 · ${status.email||'구글 계정'}`:'연동하면 구글 드라이브의 폴더를 바로 가져올 수 있습니다.';
+      el('google-connect').hidden=ready;el('google-connect').textContent=status.needs_reconnect?'다시 연동하기':'구글 드라이브 연동하기';
+      el('google-import').hidden=!ready;el('google-disconnect').hidden=!status.connected;
     }
-    function gdriveLogin(){ // The token stays in this page's memory only; it is never sent to the SKIVE server.
-      return new Promise((ok,no)=>{
-        const client=google.accounts.oauth2.initTokenClient({client_id:cfg.google_client_id,scope:'https://www.googleapis.com/auth/drive.readonly',
-          callback:reply=>{if(reply.error){no(new Error('구글 드라이브 연결 실패: '+reply.error));return}gdrive.token=reply.access_token;gdrive.expires=Date.now()+(Number(reply.expires_in)-60)*1000;ok()},
-          error_callback:()=>no(new Error('구글 로그인이 취소되었습니다'))});
-        client.requestAccessToken();
-      });
-    }
-    async function gdriveFetch(url){
-      if(Date.now()>gdrive.expires)throw new Error('구글 연결이 만료되었습니다. 구글 드라이브 버튼을 다시 눌러 주세요.');
-      const response=await fetch(url,{headers:{Authorization:'Bearer '+gdrive.token}});
-      if(response.status===401)throw new Error('구글 연결이 만료되었습니다. 구글 드라이브 버튼을 다시 눌러 주세요.');
-      if(!response.ok)throw new Error(`구글 드라이브 응답 오류 (${response.status})`);
-      return response;
-    }
-    async function gdriveList(query){
-      const files=[];let pageToken='';
-      do{
-        const params=new URLSearchParams({q:query,pageSize:'1000',orderBy:'folder,name',includeItemsFromAllDrives:'true',supportsAllDrives:'true',fields:'nextPageToken,files(id,name,mimeType,size,modifiedTime)'});
-        if(pageToken)params.set('pageToken',pageToken);
-        const page=await(await gdriveFetch(`${GDRIVE_API}/files?${params}`)).json();
-        files.push(...(page.files||[]));pageToken=page.nextPageToken||'';
-      }while(pageToken);
-      return files;
-    }
-    function gdriveVirtualFile(item){
-      const target=GDRIVE_EXPORTS[item.mimeType];
-      if(item.mimeType.startsWith('application/vnd.google-apps.')&&!target)return null; // Shortcuts, forms and the like have no file to copy.
-      const name=item.name.replaceAll('/','／')+(target?target[1]:'');
-      const type=target?target[0]:item.mimeType;
-      const lastModified=Date.parse(item.modifiedTime)||0;
-      return {name,type,lastModified,size:Number(item.size||0),load:async()=>{
-        const url=target?`${GDRIVE_API}/files/${item.id}/export?mimeType=${encodeURIComponent(target[0])}`:`${GDRIVE_API}/files/${item.id}?alt=media&supportsAllDrives=true`;
-        return new File([await(await gdriveFetch(url)).blob()],name,{type,lastModified});
-      }};
-    }
-    async function gdriveCollect(item,prefix,out,skipped,report){
-      if(item.mimeType===GDRIVE_FOLDER){
-        const folder=prefix+item.name.replaceAll('/','／')+'/';
-        for(const child of await gdriveList(`'${item.id}' in parents and trashed=false`))await gdriveCollect(child,folder,out,skipped,report);
-        return;
-      }
-      const file=gdriveVirtualFile(item);
-      if(!file){skipped.push(item.name);return}
-      out.push({file,relative:prefix+file.name});report(out.length);
+    async function refreshGoogle(){gdrive.status=await googleApi('/status');paintGoogle()}
+    async function connectGoogle(){const {url}=await googleApi('/connect',{method:'POST'});window.location.href=url}
+    async function disconnectGoogle(){
+      if(!confirm('구글 드라이브 연결을 해제할까요? 이미 가져온 파일은 그대로 남습니다.'))return;
+      await googleApi('/connection',{method:'DELETE'});await refreshGoogle();notice('구글 드라이브 연결을 해제했습니다.');
     }
     function gdriveUpdateImport(){
       const count=gdrive.selected.size;el('gdrive-import').disabled=!count;
       el('gdrive-import').textContent=count?`선택한 ${count}개 가져오기`:'선택한 항목 가져오기';
     }
+    function gdriveFail(error){el('gdrive-status').textContent=error.message||String(error);console.error(error)}
     async function gdriveShow(){
       const place=gdrive.trail[gdrive.trail.length-1],list=el('gdrive-list');
       el('gdrive-path').textContent=gdrive.trail.map(step=>step.name).join(' / ');
       el('gdrive-up').disabled=gdrive.trail.length<2;
       el('gdrive-status').textContent='불러오는 중...';clear(list);
-      const items=await gdriveList(place.query);
-      el('gdrive-status').textContent=items.length?'':'이 위치에는 항목이 없습니다.';
-      for(const item of items){
-        const isFolder=item.mimeType===GDRIVE_FOLDER,row=document.createElement('label');
+      const {files}=await googleApi('/files?parent='+encodeURIComponent(place.parent));
+      el('gdrive-status').textContent=files.length?'':'이 위치에는 항목이 없습니다.';
+      for(const item of files){
+        const row=document.createElement('label');
         row.style.cssText='display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid #f0f2f4';
         const box=document.createElement('input');box.type='checkbox';box.checked=gdrive.selected.has(item.id);
         box.onchange=()=>{if(box.checked)gdrive.selected.set(item.id,item);else gdrive.selected.delete(item.id);gdriveUpdateImport()};
         row.append(box);
-        if(isFolder){
-          const open=button('📁 '+item.name,event=>{event.preventDefault();gdrive.trail.push({name:item.name,query:`'${item.id}' in parents and trashed=false`});gdriveShow().catch(gdriveFail)});
+        if(item.mimeType===GDRIVE_FOLDER){
+          const open=button('📁 '+item.name,event=>{event.preventDefault();gdrive.trail.push({name:item.name,parent:item.id});gdriveShow().catch(gdriveFail)});
           open.className='gdrive-open';open.style.cssText='border:0;background:none;padding:0;text-align:left;flex:1';row.append(open);
         }else{
           const label=document.createElement('span');label.textContent='📄 '+item.name;label.style.flex='1';row.append(label);
@@ -640,23 +600,44 @@
         list.append(row);
       }
     }
-    function gdriveFail(error){el('gdrive-status').textContent=error.message||String(error);console.error(error)}
-    function gdriveGo(name,query){gdrive.trail=[{name,query}];gdriveShow().catch(gdriveFail)}
+    function gdriveGo(name,parent){gdrive.trail=[{name,parent}];gdriveShow().catch(gdriveFail)}
     async function openGdrive(){
-      if(Date.now()>gdrive.expires)await gdriveLogin();
-      gdrive.selected.clear();gdriveUpdateImport();el('gdrive-dialog').showModal();
-      gdriveGo('내 드라이브',"'root' in parents and trashed=false");
+      await refreshGoogle();
+      if(!gdrive.status.connected||gdrive.status.needs_reconnect){await connectGoogle();return}
+      showTab('drive');gdrive.selected.clear();gdriveUpdateImport();el('gdrive-dialog').showModal();gdriveGo('내 드라이브','root');
     }
     async function gdriveImport(){
-      const button=el('gdrive-import'),status=el('gdrive-status');button.disabled=true;
+      el('gdrive-import').disabled=true;
       try{
-        const items=[],skipped=[];
-        for(const item of gdrive.selected.values())await gdriveCollect(item,'',items,skipped,count=>{status.textContent=`목록 확인 중 · ${count}개`});
-        if(!items.length){status.textContent='가져올 수 있는 파일이 없습니다.';return}
-        el('gdrive-dialog').close();
-        await uploadMany(items,items.some(item=>item.relative.includes('/')));
-        if(skipped.length)notice(`바로가기 등 파일이 아닌 항목 ${skipped.length}개는 건너뛰었습니다.`);
-      }catch(error){gdriveFail(error)}finally{gdriveUpdateImport()}
+        await googleApi('/imports',{method:'POST',body:JSON.stringify({items:[...gdrive.selected.values()],parent_id:current})});
+        el('gdrive-dialog').close();watchGoogleImport();
+      }catch(error){gdriveFail(error);gdriveUpdateImport()}
+    }
+    async function watchGoogleImport(){
+      if(gdrive.watching)return;gdrive.watching=true;
+      try{
+        for(;;){
+          const job=await googleApi('/imports/latest');
+          if(!job.id||!session)return;
+          const running=job.status==='queued'||job.status==='processing',finished=job.done+job.failed;
+          if(!running&&Date.now()-Date.parse(job.updated_at)>60000)return;
+          el('progress').style.display='block';
+          el('upload-title').textContent=running?'구글 드라이브에서 가져오는 중':job.status==='failed'?'구글 드라이브 가져오기 실패':'구글 드라이브 가져오기 완료';
+          el('upload-count').textContent=job.total?`${finished}/${job.total}개`:'목록 확인 중';
+          const percent=job.total?Math.round(finished/job.total*100):0;el('upload-overall').value=percent;el('upload-percent').textContent=percent+'%';
+          el('upload-detail').textContent=job.error||`${job.failed?'실패 '+job.failed+'개 · ':''}${job.skipped?'파일이 아닌 항목 '+job.skipped+'개 제외 · ':''}서버에서 가져오는 중입니다. 서버가 잠들면 다음 접속 때 이어집니다`;
+          scheduleFolderRefresh();
+          if(!running){if(job.error)notice(job.error);await refreshGoogle();return}
+          await new Promise(resolve=>setTimeout(resolve,3000));
+        }
+      }finally{gdrive.watching=false}
+    }
+    function handleGoogleReturn(){
+      const url=new URL(window.location.href),result=url.searchParams.get('google');
+      if(!result)return;
+      url.searchParams.delete('google');history.replaceState(null,'',url);
+      notice({connected:'구글 드라이브를 연동했습니다.',denied:'구글 드라이브 연동을 취소했습니다.',failed:'구글 드라이브 연동에 실패했습니다. 다시 시도해 주세요.'}[result]||'');
+      if(result==='connected')showTab('profile');
     }
     async function readDroppedEntry(entry,prefix,out){
       if(entry.isFile){const file=await new Promise((ok,no)=>entry.file(ok,no));out.push({file,relative:prefix+file.name});return}
@@ -691,10 +672,10 @@
         }catch(error){fail(error)}
       });
     }
-    async function signedIn(live){session=live;activeChatSession=null;activeEssay=null;el('auth').hidden=true;el('app').hidden=false;el('account').textContent=live.user.email;current=null;trail=[];showTab('drive');await show();await refreshSummary()}
+    async function signedIn(live){session=live;activeChatSession=null;activeEssay=null;el('auth').hidden=true;el('app').hidden=false;el('account').textContent=live.user.email;current=null;trail=[];showTab('drive');await show();await refreshSummary();refreshGoogle().then(()=>{handleGoogleReturn();watchGoogleImport()}).catch(console.error)}
     async function boot(){
       installDropUpload();
-      try{const r=await fetch('/api/drive/config');if(!r.ok)throw new Error('Supabase 설정이 필요합니다. 프로젝트 루트 .env에 SUPABASE_URL과 SUPABASE_PUBLISHABLE_KEY를 추가하세요.');cfg=await r.json();if(cfg.google_client_id){el('import-gdrive').hidden=false;loadGoogleIdentity().catch(console.error)}
+      try{const r=await fetch('/api/drive/config');if(!r.ok)throw new Error('Supabase 설정이 필요합니다. 프로젝트 루트 .env에 SUPABASE_URL과 SUPABASE_PUBLISHABLE_KEY를 추가하세요.');cfg=await r.json();
         supabase=createClient(cfg.url,cfg.key);const {data:{session:live}}=await withTimeout(supabase.auth.getSession());if(live)await signedIn(live);else el('auth').hidden=false;
         supabase.auth.onAuthStateChange((event,active)=>{
           if(event==='SIGNED_OUT'){session=null;activeChatSession=null;activeEssay=null;el('app').hidden=true;el('auth').hidden=false}
@@ -751,11 +732,16 @@
     document.addEventListener('click',event=>{if(!event.target.closest('.popover,#new-menu,.row-more'))closePopovers()});
     document.addEventListener('keydown',event=>{if(event.key==='Escape')closePopovers()});
     for(const heading of document.querySelectorAll('.sort-button'))heading.onclick=()=>{const key=heading.dataset.sort;if(sortKey===key)sortDirection*=-1;else{sortKey=key;sortDirection=key==='date'?-1:1}render(visibleItems)};
-    el('import-gdrive').onclick=()=>openGdrive().catch(fail); // Runs directly in the click so the Google popup is not blocked.
+    el('import-gdrive').onclick=()=>openGdrive().catch(fail);
+    el('google-import').onclick=()=>openGdrive().catch(fail);
+    el('google-connect').onclick=()=>connectGoogle().catch(fail);
+    el('gdrive-banner-connect').onclick=()=>connectGoogle().catch(fail);
+    el('google-disconnect').onclick=()=>disconnectGoogle().catch(fail);
+    el('gdrive-banner-later').onclick=()=>{try{localStorage.setItem('skive-google-banner','off')}catch{};el('gdrive-banner').hidden=true};
     el('gdrive-close').onclick=()=>el('gdrive-dialog').close();
     el('gdrive-import').onclick=()=>gdriveImport();
-    el('gdrive-mine').onclick=()=>gdriveGo('내 드라이브',"'root' in parents and trashed=false");
-    el('gdrive-shared').onclick=()=>gdriveGo('공유 문서함','sharedWithMe=true and trashed=false');
+    el('gdrive-mine').onclick=()=>gdriveGo('내 드라이브','root');
+    el('gdrive-shared').onclick=()=>gdriveGo('공유 문서함','shared');
     el('gdrive-up').onclick=()=>{gdrive.trail.pop();gdriveShow().catch(gdriveFail)};
     el('upload-files').onclick=()=>el('file-input').click();el('upload-folder').onclick=()=>el('folder-input').click();
     el('file-input').onchange=e=>{uploadMany([...e.target.files],false).catch(fail);e.target.value=''};

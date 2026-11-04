@@ -26,6 +26,7 @@ from skive.drive_api import router as drive_router
 from skive.drive_activities import router as activity_router
 from skive.drive_workspace import router as workspace_router
 from skive.drive_career import router as career_router
+from skive.drive_google import router as google_router
 from skive.drive_project_summary import router as project_summary_router
 from skive.analyzer import analyze_folder
 from skive.apply import run_apply
@@ -49,6 +50,7 @@ app.include_router(career_router)
 app.include_router(activity_router)
 app.include_router(workspace_router)
 app.include_router(project_summary_router)
+app.include_router(google_router)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
