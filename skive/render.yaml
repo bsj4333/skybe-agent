@@ -4,7 +4,7 @@ services:
   - type: web
     name: skive
     runtime: docker
-    plan: starter  # Free instances sleep when idle, which would stop the extraction worker.
+    plan: free  # Sleeps after 15 idle minutes; extraction pauses until the next request.
     region: singapore
     branch: skive-agent
     rootDir: skive
