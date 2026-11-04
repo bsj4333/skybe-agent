@@ -46,6 +46,8 @@
     .read-card-sample{display:block;width:100%;padding:10px 12px;margin:6px 0;text-align:left;line-height:1.5;border:1px solid #dce5e7;border-radius:9px;background:#fff;color:#202124;cursor:pointer;overflow-wrap:anywhere}.read-card-sample:hover{background:#eef7f5}.read-card-chunk{padding:14px;background:#f7f9fa;border:1px solid #e1e7e9;border-radius:9px;white-space:pre-wrap;overflow-wrap:anywhere;max-height:340px;overflow:auto}
     .activity-suggestion{padding:10px 0;border-top:1px solid #e1e7e9}.activity-suggestion summary{cursor:pointer;font-weight:600}.activity-suggestion>input,.activity-suggestion>select{padding:8px;margin:8px 8px 8px 0;max-width:100%;border:1px solid #cbd5da;border-radius:8px}.suggestion-files{max-height:220px;overflow:auto;padding:8px;border:1px solid #e1e7e9;border-radius:8px;margin:8px 0}.suggestion-files label{display:block;padding:4px 0;overflow-wrap:anywhere}
     .activity-fact{padding:13px;margin:12px 0;border:1px solid #d9e3e5;border-radius:11px;line-height:1.5}.activity-fact blockquote{margin:10px 0;padding:8px 13px;border-left:3px solid #9abfba;background:#f5f9f8;overflow-wrap:anywhere}.activity-fact input,.activity-fact select{padding:8px;margin:4px;border:1px solid #cbd5da;border-radius:8px;max-width:100%}.activity-fact input{min-width:250px;max-width:95%}.activity-fact button{margin:4px}
+    #app.drop-active{outline:3px dashed #2563eb;outline-offset:-6px}
+    #app.drop-active::after{content:"놓으면 지금 보고 있는 폴더에 올립니다";position:fixed;left:50%;bottom:32px;transform:translateX(-50%);padding:10px 16px;border-radius:8px;background:#2563eb;color:#fff;font-weight:600;z-index:50;pointer-events:none}
   </style>
 </head>
 <body>
@@ -488,6 +490,10 @@
       onState('완료 처리 중');
       await api('/files/'+info.id+'/complete',{method:'POST'});localStorage.removeItem(key);scheduleFolderRefresh();
     }
+    function uploadErrorMessage(error){
+      if(error.originalResponse?.getStatus?.()===413)return '파일이 저장소의 파일 크기 한도보다 큽니다.';
+      return error.message||String(error);
+    }
     async function runQueuedUpload(task){
       const state=uploadState,id=++state.nextId,view=progressItem(task.relative);
       state.active.set(id,0);scheduleUploadPaint();
@@ -497,12 +503,12 @@
           view.state.textContent=`전송 중 · ${view.bar.value}%`;scheduleUploadPaint();
         },text=>{view.state.textContent=text});
         state.completedBytes+=task.file.size;state.done++;view.bar.value=100;view.state.textContent='완료';
-      }catch(error){state.failed++;view.state.textContent='실패 · '+(error.message||String(error));console.error('SKIVE upload failed',task.relative,error)}
+      }catch(error){state.failed++;view.state.textContent='실패 · '+uploadErrorMessage(error);console.error('SKIVE upload failed',task.relative,error)}
       finally{state.active.delete(id);scheduleUploadPaint();scheduleFolderRefresh()}
     }
     function pumpUploads(){
       const state=uploadState;
-      while(state.running<2&&state.queue.length){
+      while(state.running<4&&state.queue.length){
         const task=state.queue.shift();state.running++;
         runQueuedUpload(task).finally(()=>{
           state.running--;scheduleUploadPaint();pumpUploads();
@@ -522,24 +528,58 @@
       }
       el('progress').style.display='block';
       el('upload-title').textContent=isFolder?'폴더 준비 중':'파일 준비 중';
+      const items=files.map(entry=>entry.file?entry:{file:entry,relative:isFolder?entry.webkitRelativePath:entry.name});
       let folders={};
       if(isFolder){
-        const paths=[...new Set(files.map(file=>file.webkitRelativePath.split('/').slice(0,-1).join('/')).filter(Boolean))];
+        const paths=[...new Set(items.map(item=>item.relative.split('/').slice(0,-1).join('/')).filter(Boolean))];
         try{
           folders=(await api('/folders/import-tree',{method:'POST',body:JSON.stringify({parent_id:base,paths})})).folders;
           await show(); // Parent folder appears before the first byte is uploaded.
         }catch(error){el('upload-title').textContent='폴더 준비 실패';throw error}
       }
-      for(const file of files){
-        const relative=isFolder?file.webkitRelativePath:file.name;
-        const folderPath=isFolder?relative.split('/').slice(0,-1).join('/'):'';
-        state.queue.push({file,relative,parentId:isFolder?folders[folderPath]:base});
+      for(const {file,relative} of items){
+        const folderPath=relative.split('/').slice(0,-1).join('/');
+        state.queue.push({file,relative,parentId:folderPath?folders[folderPath]:base});
         state.totalFiles++;state.totalBytes+=file.size;
       }
       scheduleUploadPaint();pumpUploads();
     }
+    async function readDroppedEntry(entry,prefix,out){
+      if(entry.isFile){const file=await new Promise((ok,no)=>entry.file(ok,no));out.push({file,relative:prefix+file.name});return}
+      const reader=entry.createReader();
+      for(;;){ // readEntries returns at most about 100 entries per call.
+        const batch=await new Promise((ok,no)=>reader.readEntries(ok,no));
+        if(!batch.length)return;
+        for(const child of batch)await readDroppedEntry(child,prefix+entry.name+'/',out);
+      }
+    }
+    async function droppedItems(data){
+      const entries=[...data.items].filter(item=>item.kind==='file').map(item=>item.webkitGetAsEntry?.()).filter(Boolean);
+      if(!entries.length)return [...data.files].map(file=>({file,relative:file.name}));
+      const out=[];for(const entry of entries)await readDroppedEntry(entry,'',out);return out;
+    }
+    function installDropUpload(){
+      const zone=el('app');let depth=0;
+      const hasFiles=event=>[...(event.dataTransfer?.types||[])].includes('Files');
+      const setActive=active=>zone.classList.toggle('drop-active',active);
+      window.addEventListener('dragover',event=>{if(hasFiles(event))event.preventDefault()});
+      window.addEventListener('drop',event=>{if(hasFiles(event))event.preventDefault()});
+      zone.addEventListener('dragenter',event=>{if(hasFiles(event)){depth++;setActive(true)}});
+      zone.addEventListener('dragleave',event=>{if(hasFiles(event)&&--depth<=0){depth=0;setActive(false)}});
+      zone.addEventListener('drop',async event=>{
+        if(!hasFiles(event))return;
+        event.preventDefault();depth=0;setActive(false);
+        if(!session)return;
+        const pending=droppedItems(event.dataTransfer); // Entries expire after this event.
+        try{
+          showTab('drive');const items=await pending;
+          await uploadMany(items,items.some(item=>item.relative.includes('/')));
+        }catch(error){fail(error)}
+      });
+    }
     async function signedIn(live){session=live;activeChatSession=null;activeEssay=null;el('auth').hidden=true;el('app').hidden=false;el('account').textContent=live.user.email;current=null;trail=[];showTab('drive');await show();await refreshSummary()}
     async function boot(){
+      installDropUpload();
       try{const r=await fetch('/api/drive/config');if(!r.ok)throw new Error('Supabase 설정이 필요합니다. 프로젝트 루트 .env에 SUPABASE_URL과 SUPABASE_PUBLISHABLE_KEY를 추가하세요.');cfg=await r.json();
         supabase=createClient(cfg.url,cfg.key);const {data:{session:live}}=await withTimeout(supabase.auth.getSession());if(live)await signedIn(live);else el('auth').hidden=false;
         supabase.auth.onAuthStateChange((event,active)=>{

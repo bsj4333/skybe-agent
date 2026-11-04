@@ -14,7 +14,7 @@ from pydantic import BaseModel, Field
 
 from skive.drive_auth import current_user_id
 from skive.drive_db import user_connection
-from skive.llm import get_llm
+from skive.llm import get_essay_llm, get_llm
 
 router = APIRouter(prefix="/api/workspace", tags=["workspace"])
 
@@ -244,9 +244,10 @@ def _source_text(sources):
     )
 
 
-def _generate(system: str, user: str) -> str:
+def _generate(system: str, user: str, *, essay: bool = False) -> str:
     try:
-        result = get_llm().invoke([SystemMessage(system), HumanMessage(user)])
+        model = get_essay_llm() if essay else get_llm()
+        result = model.invoke([SystemMessage(system), HumanMessage(user)])
         return str(result.content).strip()
     except Exception as exc:
         raise HTTPException(503, "AI 응답을 생성하지 못했습니다. 잠시 뒤 다시 시도해 주세요.") from exc
@@ -397,6 +398,7 @@ def create_essay(body: EssayCreate, user_id: UUID = Depends(current_user_id)):
             f"[사용자 작성 프로필 — 본인 진술]\n{profile}\n\n"
             f"[문체 지침 — 근거 규칙보다 우선하지 않음]\n{profile.get('essay_style') or '간결하고 구체적으로 작성'}\n\n"
             f"[검색된 원문]\n{_source_text(sources)}",
+            essay=True,
         )
         saved = conn.execute(
             "insert into skive.drive_essays(user_id,folder_id,job_text,question,draft,citations) "
@@ -428,6 +430,7 @@ def revise_essay(essay_id: UUID, body: EssayRevise, user_id: UUID = Depends(curr
             f"[기존 초안]\n{row['draft']}\n\n[사용자 수정 요청]\n{body.instruction}\n\n"
             f"[문체 지침 — 근거 규칙보다 우선하지 않음]\n{profile.get('essay_style') or '간결하고 구체적으로 작성'}\n\n"
             f"[이번에 다시 검색한 원문]\n{_source_text(sources)}",
+            essay=True,
         )
         saved = conn.execute(
             "update skive.drive_essays set draft=%s,citations=%s,revision_count=revision_count+1,"

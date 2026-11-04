@@ -10,7 +10,7 @@ from uuid import UUID
 from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
 from langchain_core.tools import tool
 
-from skive.llm import get_llm
+from skive.llm import get_essay_llm, get_llm
 
 
 def _append_unique(target: list[dict], rows: list[dict], key):
@@ -109,10 +109,13 @@ def run_career_orchestrator(conn, context: dict, job_id: UUID,
             else:
                 result = selected.invoke(call["args"])
             messages.append(ToolMessage(content=result, tool_call_id=call["id"]))
+        for call in calls[4:]:  # 모든 도구 호출에는 결과가 있어야 다음 요청이 통과한다.
+            messages.append(ToolMessage(content="한 번에 4개까지만 조회합니다",
+                                        tool_call_id=call["id"]))
     messages.append(HumanMessage(
         "지금까지 확인한 내용만으로 답변을 제출해라. discuss/ask/draft 중 하나를 선택한다. "
         "원문이나 본인 진술이 부족하거나 서로 충돌하면 ask로 한 가지 구체적인 질문을 한다. "
         "초안에 파일 사실을 쓰면 [파일 N], 본인 진술을 쓰면 [본인 진술]을 표시한다. "
         "검토된 활동 사실을 쓰면 [활동 사실 N]을 표시한다."
     ))
-    return get_llm().with_structured_output(reply_schema).invoke(messages)
+    return get_essay_llm().with_structured_output(reply_schema).invoke(messages)

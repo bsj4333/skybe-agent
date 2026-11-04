@@ -38,6 +38,7 @@ def test_model_can_search_drive_again_and_reuse_result(monkeypatch):
             return FinalBound()
 
     monkeypatch.setattr("skive.drive_orchestrator.get_llm", lambda: FakeModel())
+    monkeypatch.setattr("skive.drive_orchestrator.get_essay_llm", lambda: FakeModel())
     monkeypatch.setattr("skive.drive_workspace._sources", lambda conn, query, folder, limit:
                         [{"index": 1, "file_id": str(uuid4()), "chunk_index": 0,
                           "name": "BOM note", "location": "line 1", "excerpt": "BOM 설명"}])

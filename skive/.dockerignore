@@ -1,0 +1,14 @@
+.env
+.env.*
+!.env.example
+.venv
+data
+docs
+harness
+samples
+scripts
+tests
+.pytest_cache
+.pytest-drive-eval
+.uv-cache-eval
+**/__pycache__

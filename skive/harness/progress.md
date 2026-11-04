@@ -130,3 +130,23 @@
 - `tests/live_drive_smoke.py` 통과: 로그인, TUS 끊김 재개, 추출 워커, 메타데이터 RLS, Storage 격리. 임시 계정·파일은 삭제했고 사용자·객체·파일 모두 0건.
 - 임시 사용자 1명을 둔 `pytest -q`: 90 passed, 2 skipped. `test_reanalyze_cannot_queue_another_users_file`은 파일이 없어 건너뛰었다. 서버는 8020에서 기동 확인 후 종료, `/api/drive/config`는 새 주소를 주고 비밀 키는 노출하지 않는다.
 - 남은 일: F-105(OpenAI 크레딧 또는 Claude 어댑터 결정), 사람 자료 재업로드, 브라우저 UI 로그인 확인. 이전 프로젝트 자료(파일 4,325개)는 복구 경로가 확인되지 않았다.
+
+### 2026-11-04 · claude — Claude 전환, 드래그 업로드, 업로드 속도
+- 사람 지시로 앱 코드를 고쳤다. 모든 모델 호출을 공식 `anthropic` SDK로 전환(`skive/llm.py`). 기본 `claude-haiku-5-5`/low, 자소서 작성만 `get_essay_llm()`으로 `claude-sonnet-5-5`/medium. 임베딩은 Claude API에 없어 레거시 경로에서 OpenAI 유지.
+- 프로젝트 통합 요약을 OpenAI Agents 세션에서 Claude 도구 루프로 이식. `gpt-6-astra` 앱 기본값 제거(`scripts/compare_agents_api.py`에는 남아 있음).
+- 드래그 앤 드롭 업로드 추가. 실제 Edge에서 폴더 드롭으로 확인.
+- 트랜잭션 풀러 충돌 수정(`prepare_threshold=None`): 이전에는 추출이 `_pg3_0 already exists`로 실패. 사용자 요청·워커에 연결 풀, 동시 업로드 4개.
+- 실측: 합성 자료 아닌 실제 폴더 255개 기준 업로드 10분에 123개 → 약 6분에 255개, 업로드 실패 0. 추출은 단일 워커로 파일당 약 8.5초(연결 풀 적용 전 측정). 원인은 DB 위치 `eu-central-1`, 쿼리 왕복 약 0.29초.
+- 검증: `pytest` 99 passed, 1 skipped. 실제 모델 E2E(챗봇·사실 후보·자소서·프로젝트 요약) 통과. 사고 블록 재전송은 단위 테스트만 있고 실제 호출에서는 사고 블록이 나오지 않아 미검증.
+- 커밋·push 안 함. 남은 일: 실제 계정 생성, 자료 범위 결정, DB 지역 결정.
+
+### 2026-11-04 · claude — 서울 프로젝트로 이전
+- 사람이 서울 리전(`ap-northeast-2`) Supabase를 새로 만들었다. `.env` 교체(이전 값은 로컬 백업), 마이그레이션 `0001`~`0016` 적용, 드라이브 테이블 20개 전부 RLS 확인. 사용자·파일 0건.
+- 측정: 쿼리 왕복 0.288초 → 0.011초, 접속 1.75초 → 0.15초. 실제 폴더 255개 드래그 업로드 6분 40초 → 63초, 업로드 후 남은 추출 34초. 결과 212개 추출, 43개 미지원, 실패 0.
+- 60MB 파일은 여전히 413. Supabase Storage 전역 파일 크기 한도를 대시보드에서 올려야 한다(사람).
+- 프랑크푸르트 프로젝트는 앱이 쓰지 않는다. 삭제는 사람이 한다.
+
+### 2026-11-04 · claude — 배포 준비와 Google Drive 확인
+- Storage 파일 크기 한도 10GB 확인: 60MB·9GB 생성 허용, 11GB는 413.
+- Google Drive MCP는 계정에 연결됐지만 이 세션 도구에는 없어서 새 headless 세션으로 읽기 전용 확인했다. 대상 폴더 5개 존재, 쓰기 없음.
+- `Dockerfile`, `deploy/start.sh`, `render.yaml` 추가. 이 PC에 Docker가 없어 이미지 빌드와 실제 배포는 미검증. 호스팅 계정 연결은 사람이 한다.

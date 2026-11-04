@@ -22,7 +22,7 @@
 
 - `/drive`: Supabase 이메일 가입/로그인, 사용자별 폴더·파일 목록, 검색, 이름 변경, 이동, 휴지통 처리, 다운로드.
 - 브라우저에서 파일과 폴더를 선택하면 원래 폴더 계층을 한 번의 API 호출로 `skive.drive_folders`에 만들고 즉시 목록을 갱신한다. 파일마다 `skive.drive_files` 기록을 만든다.
-- 파일 바이트는 브라우저용 tus-js-client 번들에서 비공개 `skive-originals` 버킷으로 최대 2개씩 TUS 재개 업로드한다. 저장 경로는 `{auth_user_id}/{file_id}/original`이다. 재선택 시 브라우저의 미완료 파일 기록과 TUS 세션으로 재개한다. 오른쪽 아래에 전체 바이트 퍼센트와 파일별 상태가 표시된다.
+- 파일 바이트는 브라우저용 tus-js-client 번들에서 비공개 `skive-originals` 버킷으로 최대 4개씩 TUS 재개 업로드한다. 저장 경로는 `{auth_user_id}/{file_id}/original`이다. 재선택 시 브라우저의 미완료 파일 기록과 TUS 세션으로 재개한다. 오른쪽 아래에 전체 바이트 퍼센트와 파일별 상태가 표시된다.
 - 업로드 완료 확인은 실제 Storage 객체와 크기를 검사하고 DB 작업 큐에 넣는다.
 - 별도 워커는 원본을 받아 지원 파일의 텍스트를 추출해 파일/버전/위치 단위로 저장한다. 파일별 Markdown은 **추출 위치 색인**이다. 파일 상태도 `텍스트 추출 완료`로 표기한다.
 - PDF 주석·PPT 발표자 노트·엑셀 메모는 본문과 별도 위치로 색인하고 `analysis_coverage`에 발견/추출 수를 남긴다. 파일의 **원문/색인 → 읽기 범위**에서 확인한다. 이미 올라간 파일은 **다시 읽기**로 계정 범위 안에서 재추출할 수 있다.
@@ -91,3 +91,11 @@ uv run python -m scripts.import_local_drive 'C:\path\to\folder' --user-email 'yo
 - 새 챗봇은 추출이 완료된 텍스트에서 질문 키워드로 관련 구간을 찾는다. 모든 파일을 미리 학습한 모델이나 완전한 의미 검색은 아니다. 한국어 모호한 질문의 재현율, 인용 문장별 검증, OCR/이미지·대용량 미지원 파일, 대화 정정 승인·사실 반영, 자소서 문장별 자동 검증은 남은 작업이다. 현재 자소서는 항상 검토 필요 상태다.
 - 서버는 현재 DB 관리자 연결을 매 요청마다 `authenticated` 역할과 사용자 JWT claim으로 낮춰 RLS를 적용한다. 임시 두 계정으로 API·Storage 교차 접근과 TUS 재개를 검증했다. 배포 전에는 실제 두 사용자 자료로 다시 검증하고 관리 DB 계정을 최소 권한 역할로 교체한다.
 - Google Drive 연동은 SKIVE 자체 드라이브의 업로드·권한·분석 파이프라인이 검증된 뒤 스냅샷 가져오기로 추가한다.
+
+## 배포 (Render)
+
+서버와 추출 워커는 컨테이너 하나로 실행된다(`Dockerfile`, `deploy/start.sh`, `render.yaml`).
+
+1. Render에서 New → Blueprint로 이 저장소를 연결하고, 브랜치 `skive-agent`, Blueprint 경로 `skive/render.yaml`을 고른다.
+2. 대시보드에서 `render.yaml`의 환경 변수 값을 입력한다. 값은 저장소에 넣지 않는다.
+3. 발급된 주소를 Supabase의 Authentication → URL Configuration에서 Site URL과 Redirect URLs에 넣는다. 그래야 가입 인증 메일이 배포 주소로 돌아온다.

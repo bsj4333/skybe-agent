@@ -83,9 +83,9 @@ def run_planner(job: JobRequirements) -> tuple[Plan, list[tuple[str, dict]]]:
     )
     messages = result["messages"]
     trace = [(c["name"], c["args"]) for m in messages for c in getattr(m, "tool_calls", [])]
-    submit = get_llm().bind_tools([Plan], tool_choice="Plan").invoke(
+    plan = get_llm().with_structured_output(Plan).invoke(
         [SystemMessage(PLANNER_PROMPT)]
         + messages
         + [("user", "탐색이 끝났다. 위에서 읽은 프로필과 경험 기록만 근거로 Plan을 제출해라.")]
     )
-    return Plan.model_validate(submit.tool_calls[0]["args"]), trace
+    return plan, trace

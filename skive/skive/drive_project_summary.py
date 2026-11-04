@@ -12,7 +12,6 @@ from typing import Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
-from openai import OpenAI
 from psycopg.rows import dict_row
 from pydantic import BaseModel, Field
 
@@ -20,11 +19,16 @@ from skive.db import get_connection
 from skive.drive_auth import current_user_id
 from skive.drive_db import user_connection
 from skive.drive_summary import rank_file
+from skive.llm import anthropic_client, ensure_complete, request_options
 
 
 router = APIRouter(prefix="/api/drive", tags=["project-summary"])
 PROMPT_VERSION = "project-summary-agent-v2"
-DEFAULT_MODEL = "gpt-6-astra"
+DEFAULT_MODEL = "claude-haiku-5-5"
+DEFAULT_EFFORT = "low"
+MAX_AGENT_TURNS = 24
+AGENT_MAX_TOKENS = 64000
+AGENT_TIMEOUT_SECONDS = 360
 NUMBER = re.compile(r"(?<![A-Za-z])\d+(?:[.,]\d+)*")
 TOKEN = re.compile(r"[A-Za-z][A-Za-z0-9_.-]{1,}|[가-힣]{2,}")
 
@@ -479,12 +483,12 @@ def _manifest(folders: list[dict], files: list[dict], coverage: dict) -> str:
 
 def run_agent(user_id: UUID, root_folder_id: UUID, title: str, folders: list[dict],
               files: list[dict]) -> tuple[ProjectSubmission, dict[str, dict], dict]:
-    """Run one bounded Agents API investigation and delete its temporary session."""
+    """Run one bounded Claude tool loop over this project's sources."""
     model = os.getenv("SKIVE_PROJECT_AGENT_MODEL", DEFAULT_MODEL)
-    client = OpenAI(api_key=os.environ["OPENAI_API_KEY"], timeout=360)
+    effort = os.getenv("SKIVE_PROJECT_AGENT_EFFORT", DEFAULT_EFFORT)
+    client = anthropic_client().with_options(timeout=AGENT_TIMEOUT_SECONDS)
     source_keys, sources, calls = {}, {}, []
     counts, submitted = Counter(), []
-    session_id = None
 
     def register(raw: dict) -> dict:
         row = dict(raw)
@@ -553,24 +557,28 @@ def run_agent(user_id: UUID, root_folder_id: UUID, title: str, folders: list[dic
         return json.dumps({"accepted": True}, ensure_ascii=False)
 
     tools = [
-        {"type": "function", "name": "list_project_files",
+        {"name": "list_project_files",
          "description": "List files and read states under this project root, optionally filtered by path.",
-         "parameters": {"type": "object", "properties": {
+         "input_schema": {"type": "object", "properties": {
              "path_prefix": {"type": "string"}, "offset": {"type": "integer", "minimum": 0},
              "limit": {"type": "integer", "minimum": 1, "maximum": 100}},
              "required": ["path_prefix", "offset", "limit"], "additionalProperties": False}},
-        {"type": "function", "name": "search_project",
+        {"name": "search_project",
          "description": "Search only this signed-in user's current project subtree and return S sources.",
-         "parameters": {"type": "object", "properties": {"query": {"type": "string"}},
-                        "required": ["query"], "additionalProperties": False}},
-        {"type": "function", "name": "read_source",
+         "input_schema": {"type": "object", "properties": {"query": {"type": "string"}},
+                          "required": ["query"], "additionalProperties": False}},
+        {"name": "read_source",
          "description": "Read the full extracted chunk for an S source returned by seed or search.",
-         "parameters": {"type": "object", "properties": {"source_id": {"type": "string"}},
-                        "required": ["source_id"], "additionalProperties": False}},
-        {"type": "function", "name": "submit_project_summary",
+         "input_schema": {"type": "object", "properties": {"source_id": {"type": "string"}},
+                          "required": ["source_id"], "additionalProperties": False}},
+        {"name": "submit_project_summary",
          "description": "Submit the final structured project understanding. Required to finish.",
-         "parameters": ProjectSubmission.model_json_schema()},
+         "input_schema": ProjectSubmission.model_json_schema()},
     ]
+    # 긴 요약 입력이 한 번에 버퍼링되지 않게 한다. 잘린 입력은 아래 ensure_complete가 막는다.
+    tools = [{**tool, "eager_input_streaming": True} for tool in tools]
+    handlers = {"list_project_files": list_project_files, "search_project": search_project,
+                "read_source": read_source, "submit_project_summary": submit_project_summary}
     prompt = (f"프로젝트 루트: {title}\n\n[폴더·파일 구조]\n"
               f"{_manifest(folders, files, coverage_for(folders, files))}\n\n"
               f"[우선 읽을 대표 원문]\n{json.dumps(seeds, ensure_ascii=False)}\n\n"
@@ -579,43 +587,34 @@ def run_agent(user_id: UUID, root_folder_id: UUID, title: str, folders: list[dic
               "설명은 appendix에 충분히 기록하세요. 대표 원문만으로 근거가 부족한 항목은 검색하고, "
               "본인 역할은 단정하지 말고 질문으로 남기세요.")
     started = time.perf_counter()
-    try:
-        with client.beta.agents.sessions.create(
-            agent={"model": model, "instructions": SYSTEM, "tools": tools},
-            environment={"type": "none"},
-            input="도구를 호출하지 말고 프로젝트 분석 준비 완료라고만 답하세요.", stream=True,
-        ) as setup_events:
-            for event in setup_events:
-                session = getattr(event, "session", None)
-                session_id = getattr(session, "id", None) or session_id
-        if not session_id:
-            raise RuntimeError("프로젝트 분석 세션 ID를 받지 못했습니다")
-        completed = False
-        with client.beta.agents.sessions.stream(
-            session_id, input=prompt,
-            tool_handlers={"list_project_files": list_project_files,
-                           "search_project": search_project,
-                           "read_source": read_source,
-                           "submit_project_summary": submit_project_summary}, timeout=300,
-        ) as events:
-            for event in events:
-                if getattr(event, "type", "") == "agent.session.turn.completed":
-                    completed = True
-        if not completed or not submitted:
-            raise RuntimeError("프로젝트 분석 에이전트가 구조화 요약을 제출하지 않았습니다")
-        trace = {"model": model, "prompt_version": PROMPT_VERSION,
-                 "seconds": round(time.perf_counter() - started, 2), "calls": calls,
-                 "tool_counts": dict(counts)}
-        return submitted[-1], sources, trace
-    finally:
-        if session_id:
-            try:
-                state = client.beta.agents.sessions.retrieve(session_id)
-                if state.status in {"idle", "completed", "failed", "cancelled"}:
-                    client.beta.agents.sessions.delete(session_id)
-            except Exception:
-                # Cleanup must not hide the analysis result. A still-running turn cannot be deleted.
-                pass
+    messages = [{"role": "user", "content": prompt}]
+    for _ in range(MAX_AGENT_TURNS):
+        with client.beta.messages.stream(
+            model=model, max_tokens=AGENT_MAX_TOKENS, system=SYSTEM, tools=tools,
+            messages=messages, cache_control={"type": "ephemeral"},
+            **request_options(model, effort),
+        ) as stream:
+            response = stream.get_final_message()
+        ensure_complete(response)
+        messages.append({"role": "assistant", "content": response.content})
+        uses = [block for block in response.content if block.type == "tool_use"]
+        if not uses:
+            messages.append({"role": "user",
+                             "content": "submit_project_summary 도구로 구조화 요약을 제출하세요."})
+            continue
+        results = []
+        for use in uses:
+            handler = handlers.get(use.name)
+            output = handler(use.input) if handler else json.dumps(
+                {"error": "지원하지 않는 도구입니다"}, ensure_ascii=False)
+            results.append({"type": "tool_result", "tool_use_id": use.id, "content": output})
+        messages.append({"role": "user", "content": results})
+        if submitted:
+            trace = {"model": model, "prompt_version": PROMPT_VERSION,
+                     "seconds": round(time.perf_counter() - started, 2), "calls": calls,
+                     "tool_counts": dict(counts)}
+            return submitted[-1], sources, trace
+    raise RuntimeError("프로젝트 분석 에이전트가 구조화 요약을 제출하지 않았습니다")
 
 
 def _nearest_project_summary(conn, folder_id: UUID):

@@ -1,0 +1,26 @@
+# Render Blueprint. When creating it, set the Blueprint path to skive/render.yaml.
+# Values marked sync: false are entered in the Render dashboard, never committed.
+services:
+  - type: web
+    name: skive
+    runtime: docker
+    plan: starter  # Free instances sleep when idle, which would stop the extraction worker.
+    region: singapore
+    branch: skive-agent
+    rootDir: skive
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/drive/config
+    envVars:
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_PUBLISHABLE_KEY
+        sync: false
+      - key: SUPABASE_SECRET_KEY
+        sync: false
+      - key: SUPABASE_JWKS_URL
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false

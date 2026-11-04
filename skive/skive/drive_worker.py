@@ -19,6 +19,7 @@ import httpx
 from psycopg.rows import dict_row
 
 from skive.db import get_connection
+from skive.drive_db import service_connection
 from skive.config import load_environment
 from skive.loaders import DRIVE_TEXT_EXT, load_drive_file
 from skive.drive_read_card import PARSER_VERSION, build_read_card
@@ -56,8 +57,7 @@ def extraction_workspace():
 
 
 def claim_job(file_id=None):
-    with get_connection() as conn:
-        conn.row_factory = dict_row
+    with service_connection() as conn:
         file_filter = "and j.file_id=%s " if file_id is not None else ""
         job = conn.execute(
             "select j.id,j.user_id,j.file_id,j.file_version,f.name,f.storage_path,f.size_bytes "
@@ -149,7 +149,7 @@ def finish_job(job: dict, chunks=None, coverage=None, error: str | None = None, 
         card = {"parser_version": PARSER_VERSION, "status": "failed", "chunk_count": 0,
                 "quote_count": 0, "number_count": 0, "quote_samples": [],
                 "number_samples": [], "coverage": coverage or {}, "error": f"Read card: {exc}"[:500]}
-    with get_connection() as conn:
+    with service_connection() as conn:
         if chunks is not None:
             conn.execute(
                 "delete from skive.drive_file_chunks where file_id=%s and file_version=%s",

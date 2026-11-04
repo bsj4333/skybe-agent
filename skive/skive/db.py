@@ -22,13 +22,20 @@ MIGRATIONS_DIR = Path(__file__).resolve().parent.parent / "migrations"
 # 응답이 없었다. 타임아웃을 짧게 주면 "느리게 실패"가 아니라 "빠르게 실패"해서, 위쪽
 # 호출부(`_finish_ingest`)가 훨씬 빨리 "검색 인덱스만 나중에 동기화" 상태로 넘어갈 수 있다.
 CONNECT_TIMEOUT_SECONDS = 5
+# Supabase 트랜잭션 풀러는 요청마다 서버 연결이 바뀔 수 있어서 prepared statement를 쓰면
+# `_pg3_0 already exists`로 실패한다 (2026-11-04 추출 작업 25건이 이렇게 실패했다).
+CONNECT_OPTIONS = {"connect_timeout": CONNECT_TIMEOUT_SECONDS, "prepare_threshold": None}
 
 
-def get_connection() -> psycopg.Connection:
+def database_url() -> str:
     url = os.environ.get("DATABASE_URL")
     if not url:
         raise RuntimeError(".env에 DATABASE_URL이 없음 (Supabase 프로젝트의 connection string)")
-    return psycopg.connect(url, connect_timeout=CONNECT_TIMEOUT_SECONDS)
+    return url
+
+
+def get_connection() -> psycopg.Connection:
+    return psycopg.connect(database_url(), **CONNECT_OPTIONS)
 
 
 def run_migrations() -> list[str]:

@@ -16,7 +16,7 @@ from pydantic import BaseModel, Field, field_validator
 from skive.drive_auth import current_user_id
 from skive.drive_db import user_connection
 from skive.drive_workspace import _keywords, _profile, _source_text, _sources
-from skive.llm import get_llm
+from skive.llm import get_essay_llm
 
 router = APIRouter(prefix="/api/career", tags=["career"])
 
@@ -228,7 +228,7 @@ def _career_response(context: dict, *, runtime=None) -> CareerReply:
         conn, job_id, sources, memories, past, reviewed = runtime
         return run_career_orchestrator(conn, context, job_id, sources, memories, past,
                                        CareerReply, reviewed)
-    return get_llm().with_structured_output(CareerReply).invoke([
+    return get_essay_llm().with_structured_output(CareerReply).invoke([
         SystemMessage(
             "너는 SKIVE 계정의 커리어 대화 오케스트레이터다. 문항과 대화 목적을 파악해 "
             "discuss(답변), ask(사용자에게 확인 질문), draft(초안 또는 수정안) 중 선택한다. "
@@ -286,7 +286,7 @@ def _repair_missing_attribution(draft: str, sources: list[dict], memories: list[
     if not (needs_user_label or needs_file_label):
         return draft
     try:
-        repaired = get_llm().with_structured_output(DraftRepair).invoke([
+        repaired = get_essay_llm().with_structured_output(DraftRepair).invoke([
             SystemMessage(
                 "자소서 초안의 출처 표시만 보완한다. 사실·수치·주체·문장 내용은 바꾸거나 추가하지 마라. "
                 "사용자가 확인한 진술에 의존한 문장에는 [본인 진술]을 붙인다. "
