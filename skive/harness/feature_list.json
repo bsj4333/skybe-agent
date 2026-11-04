@@ -1160,9 +1160,15 @@
           "by": "codex",
           "what": "Independent app environment, source-only snapshot, and Git tree validation",
           "result": "88 passed, 4 skipped in both local and publication snapshots; lock check and compilation pass; Markdown links valid; HTTP home/assets/openapi/config all 200; temporary server terminated; zero credential/private path findings; source-only publication authorized by user."
+        },
+        {
+          "date": "2026-11-04",
+          "by": "codex",
+          "what": "git push origin HEAD:refs/heads/skive-agent; git ls-remote --heads origin skive-agent",
+          "result": "Publication succeeded. Implementation commit 2c2fd6de7949c9c9448958a96cf084fd6105194f matches remote branch head. Only skive/ plus root .gitignore in the latest tree. Working tree clean; old history retained."
         }
       ],
-      "notes": "Ready for design review. Old exercise files and runtime data remain local. GitHub publication explicitly authorized. New Supabase DB DNS unresolved; no migrations or user-data writes performed."
+      "notes": "Implementation and authorized GitHub publication complete; awaiting independent design review. Old exercises, credentials, runtime data and backups remain local. New Supabase DB URI still needs IPv4 shared-pooler configuration; no migrations or user-data writes performed."
     }
   ]
 }
