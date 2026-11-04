@@ -1,0 +1,29 @@
+# Credentials and machine-specific connections
+.env
+.env.*
+!.env.example
+env.txt
+.mcp.json
+.env.backups/
+.claude/settings.local.json
+
+# Runtime personal data stays local. Synthetic fixtures live in samples/.
+/data/
+
+# Python and local tooling
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.pytest-drive-eval/
+.uv-cache-eval/
+build/
+dist/
+wheels/
+!harness/build/
+
+# Local output and screenshots
+*.log
+.DS_Store
+Thumbs.db

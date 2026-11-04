@@ -1,0 +1,219 @@
+{
+  "title": "SKIVE API 예산 산출근거 — 계획 가정, 실측 아님",
+  "as_of": "2026-10-20",
+  "unit_notes": {
+    "fx": "1 USD = 1600 KRW, 예산용 환산계수. 현재 환율 견적 아님. 세금·수수료 여유를 이 계수에 포함한다고 가정, 별도 VAT 중복 적용 금지.",
+    "tokens": "공급자별 실제 토크나이저는 다름. 모든 모델에 동일한 과금 토큰 예산을 적용한 비교이며 벤치마크 아님.",
+    "output": "청구되는 가시 출력과 추론 토큰을 합친 수량. 최초 정리는 가시 출력 약 120만 + 추론·추가 출력 여유 약 120만.",
+    "discounts": "캐시·배치 할인 미적용. 개별 요청 10만 토큰 미만으로 나누는 설계 가정.",
+    "exclusions": "DB/Storage/서버, 이미지 OCR·영상·음성 분석, 호스팅 도구·웹 검색 별도 요금, 개발자 Codex/Claude Code 사용료 제외.",
+    "status": "설계 목표 기준. 현재 코드의 Astra 기본값과 모델 선택 미구현을 반영한 실제 운영 견적 아님."
+  },
+  "formula": "KRW = (input_tokens / 1000000 * input_USD_per_Mtok + billed_output_tokens / 1000000 * output_USD_per_Mtok) * fx",
+  "assumptions": {
+    "courses": 40,
+    "activities": 10,
+    "folders": 50,
+    "files_per_folder": 20,
+    "total_files": 1000,
+    "average_original_MB": 5,
+    "total_original_GB_decimal": 5,
+    "document_files": 800,
+    "usable_tokens_per_document": 7000,
+    "code_or_table_files": 200,
+    "usable_tokens_per_code_or_table": 2000,
+    "source_tokens": 6000000,
+    "table_policy": "원시 표·가중치·영상·중복은 전체를 LLM에 보내지 않음. 파서 통계/텍스트와 메타데이터만. 미분석 범위 표시.",
+    "initial_summary_model": "gpt-6-luna",
+    "initial_pipeline_inputs": [
+      {
+        "stage": "파일별 읽기·요약",
+        "units": 1000,
+        "input_tokens_per_unit": 7000,
+        "billed_output_tokens_per_unit": 1600
+      },
+      {
+        "stage": "폴더 통합 MD",
+        "units": 50,
+        "input_tokens_per_unit": 30000,
+        "billed_output_tokens_per_unit": 12000
+      },
+      {
+        "stage": "계정 요약·프로필",
+        "units": 1,
+        "input_tokens_per_unit": 400000,
+        "billed_output_tokens_per_unit": 40000
+      },
+      {
+        "stage": "근거 대조·누락 보완",
+        "units": 1,
+        "input_tokens_per_unit": 1100000,
+        "billed_output_tokens_per_unit": 160000
+      }
+    ],
+    "initial_input_tokens": 10000000,
+    "initial_billed_output_tokens": 2400000,
+    "embedding_model": "text-embedding-3-small",
+    "embedding_input_tokens": 6000000,
+    "embedding_USD_per_Mtok": 0.02,
+    "questions_per_company": 4,
+    "conversation_turns_per_company": 30,
+    "turn_definition": "사용자 질문 1회 + AI 답변 1회. 초안/검증 단계는 별도 예산. 30턴은 사용자 실측 기록이 아닌 계획 가정.",
+    "versions_per_question": 3,
+    "companies_per_user": 5,
+    "company_pipeline": [
+      {
+        "stage": "공고·문항 분석",
+        "input_tokens": 20000,
+        "billed_output_tokens": 5000
+      },
+      {
+        "stage": "사용자 30턴 대화",
+        "input_tokens": 450000,
+        "billed_output_tokens": 60000
+      },
+      {
+        "stage": "4문항×3버전",
+        "input_tokens": 180000,
+        "billed_output_tokens": 48000
+      },
+      {
+        "stage": "근거 검증",
+        "input_tokens": 100000,
+        "billed_output_tokens": 20000
+      },
+      {
+        "stage": "결과·대화 기억 정리",
+        "input_tokens": 20000,
+        "billed_output_tokens": 7000
+      },
+      {
+        "stage": "검색 재호출·도구 문맥 여유",
+        "input_tokens": 30000,
+        "billed_output_tokens": 20000
+      }
+    ],
+    "company_input_tokens": 800000,
+    "company_billed_output_tokens": 160000,
+    "independent_chat_turns": 200,
+    "chat_input_tokens_per_turn": 12000,
+    "chat_billed_output_tokens_per_turn": 1500,
+    "period": "프로젝트 이용기간 전체를 합친 1회 산정. 월별 반복 비용 아님.",
+    "development_reserve_factor": 1.5,
+    "reserve_basis": "기본 1회 실행 + 전체 사용량의 50%에 해당하는 재검증·재시도 여유. 실측 오류율이 아님."
+  },
+  "prices": [
+    {
+      "model": "GPT-6 Luna",
+      "input_USD_per_Mtok": 0.1,
+      "output_USD_per_Mtok": 0.5
+    },
+    {
+      "model": "GPT-6 Sol",
+      "input_USD_per_Mtok": 2,
+      "output_USD_per_Mtok": 10
+    },
+    {
+      "model": "GPT-6 Astra",
+      "input_USD_per_Mtok": 10,
+      "output_USD_per_Mtok": 50
+    },
+    {
+      "model": "Claude Sonnet 5.5",
+      "input_USD_per_Mtok": 2,
+      "output_USD_per_Mtok": 10
+    },
+    {
+      "model": "Claude Opus 5.5",
+      "input_USD_per_Mtok": 4,
+      "output_USD_per_Mtok": 20
+    }
+  ],
+  "sources": [
+    "https://developers.openai.com/api/docs/pricing",
+    "https://developers.openai.com/api/docs/models/gpt-6-sol",
+    "https://developers.openai.com/api/docs/models/gpt-6-luna",
+    "https://developers.openai.com/api/docs/models/text-embedding-3-small",
+    "https://platform.claude.com/docs/en/about-claude/pricing",
+    "https://platform.claude.com/docs/en/models/sonnet-5-5/overview"
+  ],
+  "results": {
+    "initial_Luna_USD": 2.3200000000000003,
+    "initial_Luna_KRW": 3712,
+    "models": [
+      {
+        "model": "GPT-6 Luna",
+        "initial_all_same_model": 3712.0000000000005,
+        "company_usd": 0.16,
+        "company_krw": 256,
+        "chat200_krw": 624,
+        "total_1": 5616,
+        "total_10": 56160,
+        "total_20": 112320,
+        "total_20_safety_50pct": 168480
+      },
+      {
+        "model": "GPT-6 Sol",
+        "initial_all_same_model": 70592,
+        "company_usd": 3.2,
+        "company_krw": 5120,
+        "chat200_krw": 12480,
+        "total_1": 41792,
+        "total_10": 417920,
+        "total_20": 835840,
+        "total_20_safety_50pct": 1253760
+      },
+      {
+        "model": "GPT-6 Astra",
+        "initial_all_same_model": 352192,
+        "company_usd": 16,
+        "company_krw": 25600,
+        "chat200_krw": 62400,
+        "total_1": 194112,
+        "total_10": 1941120,
+        "total_20": 3882240,
+        "total_20_safety_50pct": 5823360
+      },
+      {
+        "model": "Claude Sonnet 5.5",
+        "initial_all_same_model": 70592,
+        "company_usd": 3.2,
+        "company_krw": 5120,
+        "chat200_krw": 12480,
+        "total_1": 41792,
+        "total_10": 417920,
+        "total_20": 835840,
+        "total_20_safety_50pct": 1253760
+      },
+      {
+        "model": "Claude Opus 5.5",
+        "initial_all_same_model": 140992,
+        "company_usd": 6.4,
+        "company_krw": 10240,
+        "chat200_krw": 24960,
+        "total_1": 79872,
+        "total_10": 798720,
+        "total_20": 1597440,
+        "total_20_safety_50pct": 2396160
+      }
+    ],
+    "mixed_20_users_10_Sol_10_Sonnet": {
+      "baseline_OpenAI_KRW": 455040,
+      "baseline_Claude_KRW": 380800,
+      "planned_OpenAI_KRW": 682560,
+      "planned_Claude_KRW": 571200,
+      "total_with_50pct_reserve_KRW": 1253760
+    },
+    "suggested_purchase_rounding": {
+      "OpenAI_KRW": 700000,
+      "Claude_KRW": 600000,
+      "note": "선불 충전 구매 제한·실제 환율·유효기간·집행규정 확인 후 금액 조정. 남는 예산을 정당화하기 위한 과다 사용 가정 금지."
+    }
+  },
+  "model_selection_requirement": {
+    "ingestion": "정리 경로는 서비스 관리자가 지정한 저비용 모델",
+    "chat_and_essay": "사용자가 공급자·모델 선택. 대화방/공고별 설정 및 변경 이력 저장, 저장된 MD는 재사용.",
+    "astra": "비교만 수행. 기존 사용 금지 결정을 변경하거나 유료 실행하지 않음.",
+    "unimplemented": "사용자 선택 UI, 공급자 어댑터, 표준 근거 검증 및 usage 로깅은 이 산정 작업에서 구현하지 않음."
+  }
+}

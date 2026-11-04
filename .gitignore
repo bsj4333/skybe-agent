@@ -1,16 +1,4 @@
-# Python-generated files
-__pycache__/
-*.py[oc]
-build/
-dist/
-wheels/
-*.egg-info
-
-# Virtual environments
-.venv
-
-# Secrets
-.env
-
-# Local-only editor/tool settings
-.claude/settings.local.json
+# Publish only the application. Exercises, backups, and credentials stay local.
+/*
+!/.gitignore
+!/skive/
