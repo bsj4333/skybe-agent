@@ -61,7 +61,8 @@ def claim_job(file_id=None):
     with service_connection() as conn:
         file_filter = "and j.file_id=%s " if file_id is not None else ""
         job = conn.execute(
-            "select j.id,j.user_id,j.file_id,j.file_version,f.name,f.storage_path,f.size_bytes "
+            "select j.id,j.user_id,j.file_id,j.file_version,f.name,f.storage_path,f.size_bytes,"
+            "f.source,f.google_file_id,f.google_export_mime "
             "from skive.drive_jobs j join skive.drive_files f on f.id=j.file_id "
             "where (j.status='queued' or (j.status='processing' and j.started_at < now()-interval '1 hour')) "
             "and f.upload_status='uploaded' and f.trashed_at is null "
@@ -80,6 +81,17 @@ def claim_job(file_id=None):
         return job
 
 
+def _open_source(job: dict, base_url: str, secret_key: str):
+    if job.get("source") == "google":
+        from skive.drive_google import download_stream
+
+        return download_stream(job)
+    url = (base_url.rstrip("/") + "/storage/v1/object/authenticated/skive-originals/"
+           + quote(job["storage_path"], safe="/"))
+    return httpx.stream("GET", url, headers={"apikey": secret_key, "Authorization": f"Bearer {secret_key}"},
+                        timeout=60)
+
+
 def extract(job: dict, base_url: str, secret_key: str):
     if Path(job["name"]).suffix.lower() not in SUPPORTED_EXT:
         raise UnsupportedFile("This file type has no text extractor yet")
@@ -87,14 +99,11 @@ def extract(job: dict, base_url: str, secret_key: str):
         raise UnsupportedFile("File exceeds the current 50 MB extraction limit")
     if Path(job["name"]).suffix.lower() == ".xlsx" and job["size_bytes"] > MAX_XLSX_FULL_BYTES:
         raise UnsupportedFile("Spreadsheet exceeds the current 5 MB full-cell extraction limit; original retained")
-    url = (base_url.rstrip("/") + "/storage/v1/object/authenticated/skive-originals/"
-           + quote(job["storage_path"], safe="/"))
     with extraction_workspace() as temp:
         path = temp / ("original" + Path(job["name"]).suffix.lower())
         size = 0
         digest = hashlib.sha256()
-        with httpx.stream("GET", url, headers={"apikey": secret_key,
-                                               "Authorization": f"Bearer {secret_key}"}, timeout=60) as response:
+        with _open_source(job, base_url, secret_key) as response:
             response.raise_for_status()
             with path.open("wb") as output:
                 for part in response.iter_bytes():
@@ -103,7 +112,12 @@ def extract(job: dict, base_url: str, secret_key: str):
                         raise UnsupportedFile("File exceeds the current 50 MB extraction limit")
                     digest.update(part)
                     output.write(part)
-        if size != job["size_bytes"]:
+        if job.get("google_export_mime"):  # Google documents report no size until exported.
+            if path.suffix == ".xlsx" and size > MAX_XLSX_FULL_BYTES:
+                raise UnsupportedFile("Spreadsheet exceeds the current 5 MB full-cell extraction limit")
+            with service_connection() as conn:
+                conn.execute("update skive.drive_files set size_bytes=%s where id=%s", (size, job["file_id"]))
+        elif size != job["size_bytes"]:
             raise RuntimeError("Downloaded object size differs from file record")
         if path.suffix in {".pptx", ".xlsx", ".docx"}:
             with ZipFile(path) as archive:

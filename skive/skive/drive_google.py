@@ -1,11 +1,10 @@
-"""Persistent Google Drive connection and server-side snapshot import.
+"""Persistent Google Drive connection and Drive-sourced files.
 
 A user approves once. The refresh token is stored encrypted and only the server can
-read it. Imports run in the worker: bytes stream from Google to Storage in chunks, so
-they neither wait on the browser nor sit whole in memory.
+read it. Originals stay in Google: importing registers each file, the worker reads it to
+a temp file, and SKIVE keeps only metadata and the extracted text.
 """
 
-import base64
 import json
 import os
 import re
@@ -13,7 +12,8 @@ import secrets
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
-from urllib.parse import urlencode, urljoin
+from contextlib import contextmanager
+from urllib.parse import urlencode
 from uuid import UUID, uuid4
 
 import httpx
@@ -35,7 +35,6 @@ REVOKE_URL = "https://oauth2.googleapis.com/revoke"
 DRIVE_API = "https://www.googleapis.com/drive/v3"
 NONCE_COOKIE = "skive_google_nonce"
 STATE_TTL_SECONDS = 600
-CHUNK_BYTES = 6 * 1024 * 1024
 IMPORT_THREADS = 4
 STALE_IMPORT_MINUTES = 5
 FOLDER = "application/vnd.google-apps.folder"
@@ -64,6 +63,7 @@ class GoogleItem(BaseModel):
     mimeType: str = Field(max_length=200)
     size: str | None = None
     modifiedTime: str | None = None
+    webViewLink: str | None = Field(default=None, max_length=2000)
 
 
 class ImportRequest(BaseModel):
@@ -225,7 +225,7 @@ def list_children(user_id: UUID, query: str) -> list[dict]:
         while True:
             params = {"q": query, "pageSize": 1000, "orderBy": "folder,name",
                       "includeItemsFromAllDrives": "true", "supportsAllDrives": "true",
-                      "fields": "nextPageToken,files(id,name,mimeType,size,modifiedTime)"}
+                      "fields": "nextPageToken,files(id,name,mimeType,size,modifiedTime,webViewLink)"}
             if page_token:
                 params["pageToken"] = page_token
             reply = client.get(f"{DRIVE_API}/files", params=params,
@@ -327,101 +327,51 @@ def ensure_folder(user_id: UUID, parent_id: UUID | None, path: tuple[str, ...], 
     return current
 
 
-def already_imported(user_id: UUID, item: dict) -> bool:
-    with service_connection() as conn:
-        return bool(conn.execute(
-            "select 1 from skive.drive_google_files g join skive.drive_files f on f.id=g.file_id "
-            "where g.user_id=%s and g.google_file_id=%s and g.modified_time=%s and f.trashed_at is null",
-            (user_id, item["id"], item.get("modifiedTime") or "")).fetchone())
-
-
-def _chunks(stream, size: int):
-    buffer = bytearray()
-    for piece in stream:
-        buffer.extend(piece)
-        while len(buffer) >= size:
-            yield bytes(buffer[:size])
-            del buffer[:size]
-    if buffer:
-        yield bytes(buffer)
-
-
-def _send_to_storage(storage_path: str, mime: str, size: int, pieces) -> None:
-    secret = os.environ["SUPABASE_SECRET_KEY"]
-    base = os.environ["SUPABASE_URL"].rstrip("/").replace(".supabase.co", ".storage.supabase.co")
-    headers = {"apikey": secret, "Authorization": f"Bearer {secret}", "Tus-Resumable": "1.0.0"}
-    metadata = ",".join(f"{key} {base64.b64encode(value.encode()).decode()}" for key, value in {
-        "bucketName": "skive-originals", "objectName": storage_path,
-        "contentType": mime or "application/octet-stream", "cacheControl": "3600"}.items())
-    with httpx.Client(timeout=120) as client:
-        if size == 0:  # The resumable endpoint rejects empty uploads.
-            client.post(f"{base}/storage/v1/object/skive-originals/{storage_path}", content=b"", headers={
-                "apikey": secret, "Authorization": f"Bearer {secret}",
-                "Content-Type": mime or "application/octet-stream"}).raise_for_status()
-            return
-        created = client.post(f"{base}/storage/v1/upload/resumable",
-                              headers={**headers, "Upload-Length": str(size), "Upload-Metadata": metadata})
-        created.raise_for_status()
-        location = urljoin(base, created.headers["Location"])
-        offset = 0
-        for piece in pieces:
-            client.patch(location, content=piece, headers={
-                **headers, "Upload-Offset": str(offset),
-                "Content-Type": "application/offset+octet-stream"}).raise_for_status()
-            offset += len(piece)
-
-
-def _finish_file(user_id: UUID, item: dict, file_id: UUID, storage_path: str, size: int) -> None:
-    for _ in range(10):
-        with service_connection() as conn:
-            row = conn.execute("select metadata from storage.objects where bucket_id='skive-originals' "
-                               "and name=%s", (storage_path,)).fetchone()
-            if row:
-                if int((row["metadata"] or {}).get("size", size)) != size:
-                    raise RuntimeError("저장된 파일 크기가 다릅니다")
-                conn.execute("update skive.drive_files set upload_status='uploaded',analysis_status='queued',"
-                             "updated_at=now() where id=%s and user_id=%s", (file_id, user_id))
-                conn.execute("insert into skive.drive_jobs(user_id,file_id,file_version) values (%s,%s,1) "
-                             "on conflict (file_id,file_version) do nothing", (user_id, file_id))
-                conn.execute(
-                    "insert into skive.drive_google_files(user_id,google_file_id,modified_time,file_id) "
-                    "values (%s,%s,%s,%s) on conflict (user_id,google_file_id) do update set "
-                    "modified_time=excluded.modified_time,file_id=excluded.file_id",
-                    (user_id, item["id"], item.get("modifiedTime") or "", file_id))
-                return
-        time.sleep(0.5)
-    raise RuntimeError("저장소에서 파일을 찾지 못했습니다")
-
-
-def import_file(user_id: UUID, item: dict, folder_id: UUID | None) -> None:
+def register_file(user_id: UUID, item: dict, folder_id: UUID | None) -> bool:
+    """Records a Drive file for reading. Returns False when nothing changed since last time."""
     name, mime, export = file_plan(item)
-    file_id = uuid4()
-    storage_path = f"{user_id}/{file_id}/original"
-    headers = {"Authorization": "Bearer " + access_token(user_id)}
-    with _google_client() as client:
-        if export:
-            reply = client.get(f"{DRIVE_API}/files/{item['id']}/export", params={"mimeType": export}, headers=headers)
-            reply.raise_for_status()
-            data, size, stream = reply.content, len(reply.content), None
+    modified = item.get("modifiedTime") or ""
+    size = int(item.get("size") or 0)
+    web_url = item.get("webViewLink")
+    with service_connection() as conn:
+        found = conn.execute(
+            "select id,version,google_modified_time from skive.drive_files where user_id=%s and "
+            "google_file_id=%s and source='google' and trashed_at is null", (user_id, item["id"])).fetchone()
+        if found and found["google_modified_time"] == modified:
+            return False
+        if found:
+            file_id, version = found["id"], found["version"] + 1
+            conn.execute(
+                "update skive.drive_files set version=%s,name=%s,mime_type=%s,size_bytes=%s,google_modified_time=%s,"
+                "google_web_url=%s,analysis_status='queued',analysis_error=null,updated_at=now() where id=%s",
+                (version, name, mime[:255], size, modified, web_url, file_id))
+            # Search reads every chunk of a file, so the old version must not stay beside the new one.
+            conn.execute("delete from skive.drive_file_chunks where file_id=%s and file_version<%s", (file_id, version))
         else:
-            data, size = None, int(item.get("size") or 0)
-            stream = client.stream("GET", f"{DRIVE_API}/files/{item['id']}",
-                                   params={"alt": "media", "supportsAllDrives": "true"}, headers=headers)
-        with service_connection() as conn:
-            conn.execute("insert into skive.drive_files(id,user_id,folder_id,name,storage_path,mime_type,size_bytes) "
-                         "values (%s,%s,%s,%s,%s,%s,%s)", (file_id, user_id, folder_id, name, storage_path, mime[:255], size))
-        try:
-            if stream is None:
-                _send_to_storage(storage_path, mime, size, [data] if size else [])
-            else:
-                with stream as source:
-                    source.raise_for_status()
-                    _send_to_storage(storage_path, mime, size, _chunks(source.iter_bytes(), CHUNK_BYTES))
-            _finish_file(user_id, item, file_id, storage_path, size)
-        except Exception:
-            with service_connection() as conn:
-                conn.execute("delete from skive.drive_files where id=%s and user_id=%s", (file_id, user_id))
-            raise
+            file_id, version = uuid4(), 1
+            conn.execute(
+                "insert into skive.drive_files(id,user_id,folder_id,name,storage_path,mime_type,size_bytes,"
+                "upload_status,analysis_status,source,google_file_id,google_modified_time,google_export_mime,"
+                "google_web_url) values (%s,%s,%s,%s,%s,%s,%s,'uploaded','queued','google',%s,%s,%s,%s)",
+                (file_id, user_id, folder_id, name, f"{user_id}/{file_id}/original", mime[:255], size,
+                 item["id"], modified, export, web_url))
+        conn.execute("insert into skive.drive_jobs(user_id,file_id,file_version) values (%s,%s,%s) "
+                     "on conflict (file_id,file_version) do nothing", (user_id, file_id, version))
+    return True
+
+
+@contextmanager
+def download_stream(job: dict):
+    """Opens the original at Google. The worker reads it to a temp file and keeps only the text."""
+    headers = {"Authorization": "Bearer " + access_token(job["user_id"])}
+    if job["google_export_mime"]:
+        url = f"{DRIVE_API}/files/{job['google_file_id']}/export"
+        params = {"mimeType": job["google_export_mime"]}
+    else:
+        url = f"{DRIVE_API}/files/{job['google_file_id']}"
+        params = {"alt": "media", "supportsAllDrives": "true"}
+    with _google_client() as client, client.stream("GET", url, params=params, headers=headers) as reply:
+        yield reply
 
 
 def _bump(import_id: UUID, column: str) -> None:
@@ -448,10 +398,7 @@ def execute_import(job: dict) -> None:
     def process(entry):
         item, folder_id = entry
         try:
-            if already_imported(user_id, item):
-                _bump(job["id"], "done")
-                return
-            import_file(user_id, item, folder_id)
+            register_file(user_id, item, folder_id)
             _bump(job["id"], "done")
         except Exception as exc:
             print(f"Google import file failed: {type(exc).__name__}", flush=True)

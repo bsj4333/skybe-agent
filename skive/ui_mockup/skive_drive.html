@@ -251,7 +251,9 @@
       }
     }
     function formatSize(bytes){if(bytes<1024)return bytes+' B';const unit=Math.floor(Math.log(bytes)/Math.log(1024));return (bytes/1024**unit).toFixed(1)+' '+['B','KB','MB','GB','TB'][unit]}
-    async function download(f){if(f.upload_status!=='uploaded')throw new Error('업로드가 아직 끝나지 않았습니다');
+    async function download(f){
+      if(f.source==='google'){if(!f.google_web_url)throw new Error('구글 드라이브 링크가 없습니다');window.open(f.google_web_url,'_blank','noopener');return}
+      if(f.upload_status!=='uploaded')throw new Error('업로드가 아직 끝나지 않았습니다');
       const {data,error}=await supabase.storage.from(cfg.bucket).createSignedUrl(f.storage_path,60,{download:f.name});if(error)throw error;window.location.href=data.signedUrl}
     function renderAnalysisCoverage(result){
       const box=el('analysis-coverage');clear(box);
@@ -290,7 +292,9 @@
       setPreviewTab('original');el('original-frame').hidden=true;el('original-frame').src='';
       el('download-original').disabled=result.upload_status!=='uploaded';
       el('download-original').onclick=()=>download(result).catch(fail);
-      if(result.upload_status!=='uploaded')el('original-hint').textContent='원본 업로드가 아직 끝나지 않았습니다.';
+      el('download-original').textContent=result.source==='google'?'구글 드라이브에서 열기':'원본 다운로드';
+      if(result.source==='google')el('original-hint').textContent='원본은 구글 드라이브에 있습니다. 스카이브는 읽은 글자만 보관합니다.';
+      else if(result.upload_status!=='uploaded')el('original-hint').textContent='원본 업로드가 아직 끝나지 않았습니다.';
       else if(result.mime_type==='application/pdf'||result.mime_type?.startsWith('image/')){
         el('original-hint').textContent='원본 파일 미리보기입니다. AI가 읽은 텍스트는 옆 탭에서 확인하세요.';
         const {data,error}=await supabase.storage.from(cfg.bucket).createSignedUrl(result.storage_path,60);
@@ -570,7 +574,7 @@
     async function refreshGoogle(){gdrive.status=await googleApi('/status');paintGoogle()}
     async function connectGoogle(){const {url}=await googleApi('/connect',{method:'POST'});window.location.href=url}
     async function disconnectGoogle(){
-      if(!confirm('구글 드라이브 연결을 해제할까요? 이미 가져온 파일은 그대로 남습니다.'))return;
+      if(!confirm('구글 드라이브 연결을 해제할까요? 이미 읽은 글자 내용은 남고, 새 파일 읽기와 갱신은 멈춥니다.'))return;
       await googleApi('/connection',{method:'DELETE'});await refreshGoogle();notice('구글 드라이브 연결을 해제했습니다.');
     }
     function gdriveUpdateImport(){

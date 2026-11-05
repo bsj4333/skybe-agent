@@ -72,7 +72,3 @@ def test_folder_query_targets():
     assert google.folder_query("root") == "'root' in parents and trashed=false"
     assert google.folder_query("shared") == "sharedWithMe=true and trashed=false"
 
-
-def test_chunks_are_exact_and_keep_every_byte():
-    pieces = list(google._chunks([b"abc", b"defg", b"h"], 3))
-    assert pieces == [b"abc", b"def", b"gh"]

@@ -102,7 +102,7 @@ uv run python -m scripts.import_local_drive 'C:\path\to\folder' --user-email 'yo
 
 ## 구글 드라이브 연동
 
-사용자가 프로필에서 한 번 승인하면 서버가 암호화한 갱신 토큰으로 드라이브를 읽고, 워커가 파일을 조각으로 받아 Storage에 넣는다. 이미 가져온 파일은 건너뛰고, Google 문서는 docx·xlsx·pptx로 변환한다.
+사용자가 프로필에서 한 번 승인하면 서버가 암호화한 갱신 토큰으로 드라이브를 읽는다. 구글 파일의 원본은 구글에 두고, 스카이브는 목록 정보와 추출한 글자만 보관한다. 워커는 원본을 임시 파일로 읽고 추출 뒤 지운다. 지원하지 않는 형식은 내려받지 않는다. 직접 올린 파일만 Storage에 원본을 둔다. 바뀐 파일은 다시 가져올 때 새 버전으로 재분석하고, Google 문서는 docx·xlsx·pptx로 변환해 읽는다.
 
 1. Google Cloud에서 프로젝트를 만들고 Google Drive API를 사용 설정한다.
 2. OAuth 동의 화면을 External, Testing으로 두고 쓸 구글 계정을 테스트 사용자로 추가한다.

@@ -77,7 +77,7 @@ def list_items(parent_id: UUID | None = None, user_id: UUID = Depends(current_us
         ).fetchall()
         files = conn.execute(
             "select id, folder_id, name, storage_path, mime_type, size_bytes, upload_status, analysis_status, "
-            "analysis_error, created_at, updated_at from skive.drive_files "
+            "analysis_error, source, google_web_url, created_at, updated_at from skive.drive_files "
             "where folder_id is not distinct from %s and trashed_at is null order by lower(name), id",
             (parent_id,),
         ).fetchall()
@@ -304,7 +304,7 @@ def rename_file(file_id: UUID, body: Rename, user_id: UUID = Depends(current_use
 def file_analysis(file_id: UUID, user_id: UUID = Depends(current_user_id)):
     with user_connection(user_id) as conn:
         row = row_or_404(conn.execute(
-            "select id,name,storage_path,mime_type,upload_status,version,analysis_status,analysis_error,analysis_markdown,analysis_coverage,analyzed_at "
+            "select id,name,storage_path,source,google_web_url,mime_type,upload_status,version,analysis_status,analysis_error,analysis_markdown,analysis_coverage,analyzed_at "
             "from skive.drive_files where id=%s and trashed_at is null", (file_id,)
         ).fetchone(), "File")
         preview = conn.execute(
@@ -425,7 +425,7 @@ def search(q: str = Query(min_length=1, max_length=100), user_id: UUID = Depends
             (pattern,),
         ).fetchall()
         files = conn.execute(
-            "select id,folder_id,name,storage_path,mime_type,size_bytes,upload_status,analysis_status,updated_at from skive.drive_files "
+            "select id,folder_id,name,storage_path,source,google_web_url,mime_type,size_bytes,upload_status,analysis_status,updated_at from skive.drive_files "
             "where name ilike %s escape '\\' and trashed_at is null order by updated_at desc limit 100",
             (pattern,),
         ).fetchall()
