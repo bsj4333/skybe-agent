@@ -315,6 +315,10 @@
     let activeChatSession=null, activeEssay=null, chatBusy=false, activeTab='drive';
     function showTab(tab){
       activeTab=tab;
+      if(tab!=='drive'){ // The panel floats over the page, so it must not sit on another tab's controls.
+        if(uploadState.running||uploadState.queue.length)el('progress').classList.add('compact');
+        else el('progress').style.display='none';
+      }
       for(const name of ['drive','profile','chat','essays','career'])el(name+'-section').hidden=name!==tab;
       for(const [name,id] of Object.entries({drive:'home',profile:'nav-profile',chat:'nav-chat',career:'nav-essays'}))el(id).classList.toggle('active',name===tab);
       if(tab==='profile')loadWorkspaceProfile().catch(fail);

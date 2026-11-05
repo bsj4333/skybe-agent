@@ -296,12 +296,20 @@ def file_plan(item: dict) -> tuple[str, str, str | None] | None:
     return safe_name(item["name"]), item["mimeType"], None
 
 
-def collect(user_id: UUID, item: dict, path: tuple[str, ...], out: list, skipped: list) -> None:
+def _set_total(import_id: UUID, total: int, skipped: int) -> None:
+    with service_connection() as conn:
+        conn.execute("update skive.drive_google_imports set total=%s,skipped=%s,done=0,failed=0,"
+                     "heartbeat_at=now(),updated_at=now() where id=%s", (total, skipped, import_id))
+
+
+def collect(user_id: UUID, item: dict, path: tuple[str, ...], out: list, skipped: list, import_id: UUID) -> None:
     if item["mimeType"] == FOLDER:
         folder = (*path, safe_name(item["name"]))
         out.append((None, folder))
         for child in list_children(user_id, folder_query(item["id"])):
-            collect(user_id, child, folder, out, skipped)
+            collect(user_id, child, folder, out, skipped, import_id)
+        # A deep tree can take minutes to list; keep the job from looking abandoned.
+        _set_total(import_id, sum(1 for found, _ in out if found is not None), len(skipped))
     elif file_plan(item) is None:
         skipped.append(item["name"])
     else:
@@ -309,6 +317,8 @@ def collect(user_id: UUID, item: dict, path: tuple[str, ...], out: list, skipped
 
 
 def ensure_folder(user_id: UUID, parent_id: UUID | None, path: tuple[str, ...], cache: dict) -> UUID | None:
+    if path in cache or not path:
+        return cache.get(path, parent_id)
     current = parent_id
     with service_connection() as conn:
         for depth in range(1, len(path) + 1):
@@ -384,16 +394,14 @@ def _bump(import_id: UUID, column: str) -> None:
 def execute_import(job: dict) -> None:
     user_id, entries, skipped = job["user_id"], [], []
     for item in job["selection"]["items"]:
-        collect(user_id, item, (), entries, skipped)
+        collect(user_id, item, (), entries, skipped, job["id"])
+    _set_total(job["id"], sum(1 for item, _ in entries if item is not None), len(skipped))
     cache: dict = {}
     files = []
     for item, path in entries:
         folder_id = ensure_folder(user_id, job["parent_id"], path, cache)
         if item is not None:
             files.append((item, folder_id))
-    with service_connection() as conn:
-        conn.execute("update skive.drive_google_imports set total=%s,done=0,failed=0,skipped=%s,"
-                     "heartbeat_at=now(),updated_at=now() where id=%s", (len(files), len(skipped), job["id"]))
 
     def process(entry):
         item, folder_id = entry

@@ -72,3 +72,16 @@ def test_folder_query_targets():
     assert google.folder_query("root") == "'root' in parents and trashed=false"
     assert google.folder_query("shared") == "sharedWithMe=true and trashed=false"
 
+
+
+@pytest.mark.parametrize("name", ["~$초안.docx", "._이력서.pdf", ".DS_Store", "Thumbs.db"])
+def test_system_files_are_recognized(name):
+    from skive.drive_worker import _is_system_file
+
+    assert _is_system_file(name)
+
+
+def test_real_documents_are_not_system_files():
+    from skive.drive_worker import _is_system_file
+
+    assert not _is_system_file("현대모비스 이력서.pdf")

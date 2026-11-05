@@ -27,3 +27,14 @@ wheels/
 *.log
 .DS_Store
 Thumbs.db
+
+# Keys and credentials, wherever they land
+client_secret*.json
+service-account*.json
+service_account*.json
+*.pem
+*.p12
+*.pfx
+*.key
+env-*
+/구글 드라이브/
