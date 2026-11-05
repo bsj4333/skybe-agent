@@ -101,6 +101,10 @@ def _is_system_file(name: str) -> bool:
     return name.startswith(("~$", "._")) or name.lower() in {".ds_store", "thumbs.db", "desktop.ini"}
 
 
+def readable(name: str) -> bool:
+    return not _is_system_file(name) and Path(name).suffix.lower() in SUPPORTED_EXT
+
+
 def extract(job: dict, base_url: str, secret_key: str):
     if _is_system_file(job["name"]):
         raise UnsupportedFile("System temporary file; nothing to read")

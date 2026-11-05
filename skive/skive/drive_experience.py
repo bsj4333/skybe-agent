@@ -42,6 +42,7 @@ OTHER_PATH = re.compile(r"선배|타인|다른\s?사람|지인|친구|합격\s?�
 REFERENCE_PATH = re.compile(r"레퍼런스|참고\s?자료|강의\s?자료|족보|기출|교재")
 NUMBER = re.compile(r"\d+(?:[.,]\d+)*")
 STALE_JOB_MINUTES = 10
+HAS_FACTS = "exists (select 1 from skive.drive_activity_facts f where f.activity_id=a.id)"
 
 
 class Card(BaseModel):
@@ -305,7 +306,8 @@ def build_map(user_id: UUID) -> int:
     with service_connection() as conn:
         settled = {row["file_id"] for row in conn.execute(
             "select l.file_id from skive.drive_activity_files l join skive.drive_activities a on a.id=l.activity_id "
-            "where l.user_id=%s and (a.status<>'candidate' or a.origin<>'auto')", (user_id,)).fetchall()}
+            f"where l.user_id=%s and (a.status<>'candidate' or a.origin<>'auto' or {HAS_FACTS})",
+            (user_id,)).fetchall()}
     open_files = [file for file in files if file["id"] not in settled and file["owner"] != "other_person"]
     documents = [file for file in open_files if file_tier(file["name"]) != BULK]
     bulk = [file for file in open_files if file_tier(file["name"]) == BULK]
@@ -317,8 +319,8 @@ def build_map(user_id: UUID) -> int:
     groups = {cid: position for position, experience in enumerate(experiences) for cid in experience.card_ids}
     attached = attach_by_folder(groups, items, bulk)
     with service_connection() as conn:
-        conn.execute("delete from skive.drive_activities where user_id=%s and status='candidate' and origin='auto'",
-                     (user_id,))
+        conn.execute("delete from skive.drive_activities a where a.user_id=%s and a.status='candidate' "
+                     f"and a.origin='auto' and not {HAS_FACTS}", (user_id,))
         for position, experience in enumerate(experiences):
             activity_id = uuid4()
             conn.execute(
@@ -419,8 +421,8 @@ def merge(body: MergeRequest, user_id: UUID = Depends(current_user_id)):
                          "on conflict do nothing", (target, other))
             conn.execute("update skive.drive_activity_facts set activity_id=%s where activity_id=%s", (target, other))
             conn.execute("delete from skive.drive_activities where id=%s", (other,))
-        if body.title:
-            conn.execute("update skive.drive_activities set title=%s,updated_at=now() where id=%s", (body.title, target))
+        conn.execute("update skive.drive_activities set title=coalesce(%s,title),origin='user',updated_at=now() "
+                     "where id=%s", (body.title or None, target))
         return _experience(conn, target)
 
 
@@ -466,7 +468,7 @@ def update_experience(experience_id: UUID, body: ExperienceUpdate, user_id: UUID
     with user_connection(user_id) as conn:
         _experience(conn, experience_id)
         for name, value in fields.items():
-            conn.execute(f"update skive.drive_activities set {columns[name]}=%s,updated_at=now() where id=%s",
+            conn.execute(f"update skive.drive_activities set {columns[name]}=%s,origin='user',updated_at=now() where id=%s",
                          (value, experience_id))
         return _experience(conn, experience_id)
 

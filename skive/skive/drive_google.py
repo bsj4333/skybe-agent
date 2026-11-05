@@ -22,9 +22,11 @@ from fastapi import APIRouter, Cookie, Depends, HTTPException, Response
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, Field
 
+from skive.drive_activities import require_activity
 from skive.drive_api import require_folder
 from skive.drive_auth import current_user_id
 from skive.drive_db import service_connection, user_connection
+from skive.drive_tiers import noise_folder, worth_reading
 
 router = APIRouter(prefix="/api/drive/google", tags=["google-drive"])
 
@@ -37,6 +39,7 @@ NONCE_COOKIE = "skive_google_nonce"
 STATE_TTL_SECONDS = 600
 IMPORT_THREADS = 4
 STALE_IMPORT_MINUTES = 5
+MAX_FOLDER_DEPTH = 30
 FOLDER = "application/vnd.google-apps.folder"
 GOOGLE_NATIVE = "application/vnd.google-apps."
 EXPORTS = {  # Google-native files have no bytes of their own, so they are exported.
@@ -257,26 +260,50 @@ def browse(parent: str = "root", user_id: UUID = Depends(current_user_id)):
         raise HTTPException(502, f"구글 드라이브 응답 오류 ({exc.response.status_code})") from exc
 
 
+def _require_connected(conn, user_id: UUID) -> None:
+    if not conn.execute("select 1 from skive.drive_google_connections where user_id=%s and not needs_reconnect",
+                        (user_id,)).fetchone():
+        raise HTTPException(409, "구글 드라이브를 먼저 연동해 주세요")
+
+
+def _queue_import(user_id: UUID, body: ImportRequest, activity_id: UUID | None = None) -> dict:
+    with service_connection() as conn:
+        return conn.execute(
+            "insert into skive.drive_google_imports(user_id,parent_id,selection,activity_id) "
+            "values (%s,%s,%s::jsonb,%s) returning id,status",
+            (user_id, body.parent_id, body.model_dump_json(include={"items"}), activity_id),
+        ).fetchone()
+
+
 @router.post("/imports", status_code=201)
 def start_import(body: ImportRequest, user_id: UUID = Depends(current_user_id)):
     _require_enabled()
     with user_connection(user_id) as conn:
         require_folder(conn, body.parent_id)
-        if not conn.execute("select 1 from skive.drive_google_connections where user_id=%s and not needs_reconnect",
-                            (user_id,)).fetchone():
-            raise HTTPException(409, "구글 드라이브를 먼저 연동해 주세요")
-    with service_connection() as conn:
-        return conn.execute(
-            "insert into skive.drive_google_imports(user_id,parent_id,selection) values (%s,%s,%s::jsonb) "
-            "returning id,status", (user_id, body.parent_id, body.model_dump_json(include={"items"})),
-        ).fetchone()
+        _require_connected(conn, user_id)
+    return _queue_import(user_id, body)
+
+
+@router.post("/experiences/{activity_id}/folder", status_code=201)
+def link_folder(activity_id: UUID, folder: GoogleItem, user_id: UUID = Depends(current_user_id)):
+    """Reads the Drive folder a person points at and links its files to that experience."""
+    _require_enabled()
+    if folder.mimeType != FOLDER:
+        raise HTTPException(422, "폴더를 골라 주세요")
+    with user_connection(user_id) as conn:
+        require_activity(conn, activity_id)
+        _require_connected(conn, user_id)
+        # A rebuild replaces untouched candidates; this one now carries the user's decision.
+        conn.execute("update skive.drive_activities set origin='user',updated_at=now() where id=%s", (activity_id,))
+    return _queue_import(user_id, ImportRequest(items=[folder]), activity_id)
 
 
 @router.get("/imports/latest")
 def latest_import(user_id: UUID = Depends(current_user_id)):
     with user_connection(user_id) as conn:
         return conn.execute(
-            "select id,status,total,done,skipped,failed,error,created_at,updated_at from skive.drive_google_imports "
+            "select id,status,total,done,skipped,failed,error,activity_id,linked,created_at,updated_at "
+            "from skive.drive_google_imports "
             "where user_id=%s order by created_at desc limit 1", (user_id,)).fetchone() or {}
 
 
@@ -302,8 +329,30 @@ def _set_total(import_id: UUID, total: int, skipped: int) -> None:
                      "heartbeat_at=now(),updated_at=now() where id=%s", (total, skipped, import_id))
 
 
+def drive_path(user_id: UUID, item_id: str) -> tuple[str, ...]:
+    """Folder names above a Drive item, so a nested folder lands where a full import would put it."""
+    names, current = [], item_id
+    with _google_client() as client:
+        for _ in range(MAX_FOLDER_DEPTH):
+            reply = client.get(f"{DRIVE_API}/files/{current}",
+                               params={"fields": "name,parents", "supportsAllDrives": "true"},
+                               headers={"Authorization": "Bearer " + access_token(user_id)})
+            if reply.status_code in (403, 404):
+                break  # A shared folder's parents can belong to someone else.
+            reply.raise_for_status()
+            meta = reply.json()
+            if not meta.get("parents"):
+                break  # The drive root has no parent and is not part of the path.
+            if current != item_id:
+                names.append(safe_name(meta["name"]))
+            current = meta["parents"][0]
+    return tuple(reversed(names))
+
+
 def collect(user_id: UUID, item: dict, path: tuple[str, ...], out: list, skipped: list, import_id: UUID) -> None:
-    if item["mimeType"] == FOLDER:
+    if item["mimeType"] == FOLDER and noise_folder(item["name"]):
+        skipped.append(item["name"])
+    elif item["mimeType"] == FOLDER:
         folder = (*path, safe_name(item["name"]))
         out.append((None, folder))
         for child in list_children(user_id, folder_query(item["id"])):
@@ -391,11 +440,51 @@ def _bump(import_id: UUID, column: str) -> None:
                      "updated_at=now() where id=%s", (import_id,))
 
 
+def for_experience(entries: list, person: str) -> tuple[list, int]:
+    """Keeps files an experience can use. A project folder can hold thousands of images."""
+    from skive.drive_experience import rule_owner
+    from skive.drive_worker import readable
+
+    kept = []
+    for item, path in entries:
+        name = file_plan(item)[0] if item else ""
+        if item is None or (readable(name) and worth_reading(name)
+                            and rule_owner("/".join(path), name, person) != "other_person"):
+            kept.append((item, path))
+    return kept, len(entries) - len(kept)
+
+
+def link_imported(job: dict, google_ids: list[str]) -> None:
+    """A file already in SKIVE links too, unless the user said it belongs to someone else."""
+    with service_connection() as conn:
+        added = conn.execute(
+            "insert into skive.drive_activity_files(user_id,activity_id,file_id) "
+            "select d.user_id,%s,d.id from skive.drive_files d where d.user_id=%s and d.source='google' "
+            "and d.google_file_id=any(%s) and d.trashed_at is null and not exists ("
+            "select 1 from skive.drive_file_cards k where k.file_id=d.id and k.owner='other_person' "
+            "and k.owner_source='user') on conflict (activity_id,file_id) do nothing returning file_id",
+            (job["activity_id"], job["user_id"], google_ids)).fetchall()
+        conn.execute("update skive.drive_google_imports set linked=%s,updated_at=now() where id=%s",
+                     (len(added), job["id"]))
+        conn.execute("update skive.drive_activities set updated_at=now() where id=%s", (job["activity_id"],))
+
+
+def _person(user_id: UUID) -> str:
+    with service_connection() as conn:
+        row = conn.execute("select display_name from skive.drive_profiles where user_id=%s", (user_id,)).fetchone()
+    return row["display_name"] if row else ""
+
+
 def execute_import(job: dict) -> None:
     user_id, entries, skipped = job["user_id"], [], []
+    linking = job["activity_id"] is not None
+    base = drive_path(user_id, job["selection"]["items"][0]["id"]) if linking else ()
     for item in job["selection"]["items"]:
-        collect(user_id, item, (), entries, skipped, job["id"])
-    _set_total(job["id"], sum(1 for item, _ in entries if item is not None), len(skipped))
+        collect(user_id, item, base, entries, skipped, job["id"])
+    dropped = 0
+    if linking:
+        entries, dropped = for_experience(entries, _person(user_id))
+    _set_total(job["id"], sum(1 for item, _ in entries if item is not None), len(skipped) + dropped)
     cache: dict = {}
     files = []
     for item, path in entries:
@@ -414,6 +503,8 @@ def execute_import(job: dict) -> None:
 
     with ThreadPoolExecutor(IMPORT_THREADS) as pool:
         list(pool.map(process, files))
+    if linking:
+        link_imported(job, [item["id"] for item, _ in files])
 
 
 def run_google_import_once() -> bool:
@@ -421,7 +512,7 @@ def run_google_import_once() -> bool:
         return False
     with service_connection() as conn:
         job = conn.execute(
-            "select id,user_id,parent_id,selection from skive.drive_google_imports "
+            "select id,user_id,parent_id,selection,activity_id from skive.drive_google_imports "
             "where status='queued' or (status='processing' and heartbeat_at < now()-make_interval(mins => %s)) "
             "order by created_at for update skip locked limit 1", (STALE_IMPORT_MINUTES,)).fetchone()
         if not job:

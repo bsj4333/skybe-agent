@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { ANALYSIS_LABEL, api, CATEGORIES, DOC_TYPE_LABEL, EXPERIENCE_STATUS_LABEL, FACT_KIND_LABEL, JOB_LABEL, optional, OWNER_LABEL, patch, post, REVIEW_LABEL, saveText, SUBJECT_LABEL } from "@/lib/skive";
 import { useApp } from "@/components/app-shell";
+import { GoogleFolderDialog, GoogleImportProgress, useGoogleStatus } from "@/components/google-drive";
 import { FolderPicker } from "@/components/pickers";
 import { Badge, Button, Card, Dialog, EmptyState, Field, Input, RowsSkeleton, Select } from "@/components/ui";
 
@@ -46,6 +47,9 @@ export default function ExperienceDetailPage() {
   const [split, setSplit] = useState<Set<string>>(new Set());
   const [splitTitle, setSplitTitle] = useState<string | null>(null);
   const [folderOpen, setFolderOpen] = useState(false);
+  const [googleOpen, setGoogleOpen] = useState(false);
+  const [watch, setWatch] = useState(0);
+  const { status: google } = useGoogleStatus();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState({ title: "", category: "", subcategory: "", period_text: "" });
   const [generating, setGenerating] = useState(false);
@@ -71,6 +75,13 @@ export default function ExperienceDetailPage() {
     const timer = setInterval(() => loadFacts().catch(() => {}), 5000);
     return () => clearInterval(timer);
   }, [analyzing, loadFacts]);
+
+  const reading = item?.files?.filter((file: any) => ["queued", "processing"].includes(file.analysis_status)).length ?? 0;
+  useEffect(() => {
+    if (!reading) return;
+    const timer = setInterval(() => load().catch(() => {}), 6000);
+    return () => clearInterval(timer);
+  }, [reading, load]);
 
   const run = (action: () => Promise<unknown>) => action().catch(fail);
 
@@ -127,11 +138,13 @@ export default function ExperienceDetailPage() {
       <section className="mb-6">
         <div className="mb-2 flex flex-wrap items-center gap-2">
           <h2 className="font-semibold">연결 파일 {item.files.length}개</h2>
+          {reading > 0 && <Badge tone="warn">읽는 중 {reading}개</Badge>}
           <span className="flex-1" />
           {split.size > 0 && <Button size="sm" onClick={() => setSplitTitle("")}><Scissors className="h-3 w-3" />선택한 {split.size}개 나누기</Button>}
-          <Button size="sm" onClick={() => setFolderOpen(true)}><FolderInput className="h-3 w-3" />폴더 연결</Button>
+          <Button id="experience-folder-link" size="sm" onClick={() => (google?.enabled ? setGoogleOpen(true) : setFolderOpen(true))}><FolderInput className="h-3 w-3" />폴더 연결</Button>
           <Button size="sm" onClick={() => run(async () => { const result = await api(`/activities/${id}/markdown`); saveText(result.filename, result.markdown); })}><Download className="h-3 w-3" />자료 목차</Button>
         </div>
+        <GoogleImportProgress watch={watch} activityId={id} onFinish={() => load().catch(fail)} />
         <div id="activity-files" className="max-h-72 overflow-y-auto rounded-md border border-line">
           {item.files.map((file: any) => (
             <div key={file.id} className="activity-row flex items-center gap-2 border-b border-line px-2 py-1.5 last:border-0">
@@ -184,7 +197,8 @@ export default function ExperienceDetailPage() {
         {snapshot ? <Card><pre className="prose-md font-sans">{snapshot.markdown}</pre></Card> : <p className="text-[13px] text-muted">아직 만든 요약이 없습니다.</p>}
       </section>
 
-      <FolderPicker open={folderOpen} onClose={() => setFolderOpen(false)} onPick={(folderId) => {
+      <GoogleFolderDialog open={googleOpen} activityId={id} onClose={() => setGoogleOpen(false)} onStarted={() => setWatch((value) => value + 1)} onLocal={() => { setGoogleOpen(false); setFolderOpen(true); }} />
+      <FolderPicker title="연결할 폴더" action="이 폴더 연결" open={folderOpen} onClose={() => setFolderOpen(false)} onPick={(folderId) => {
         setFolderOpen(false);
         if (!folderId) { notice("연결할 폴더를 열어서 선택해 주세요."); return; }
         run(async () => { const result = await api(`/activities/${id}/folders/${folderId}/files`, post()); notice(`${result.added}개 파일을 새로 연결했습니다.`); await load(); });

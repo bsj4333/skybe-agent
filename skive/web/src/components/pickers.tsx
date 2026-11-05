@@ -6,7 +6,7 @@ import { api } from "@/lib/skive";
 import { Button, Dialog, RowsSkeleton } from "@/components/ui";
 import { useApp } from "@/components/app-shell";
 
-export function FolderPicker({ open, onClose, onPick }: { open: boolean; onClose: () => void; onPick: (folderId: string | null) => void }) {
+export function FolderPicker({ open, onClose, onPick, title = "이동할 폴더", action = "여기로 이동" }: { open: boolean; onClose: () => void; onPick: (folderId: string | null) => void; title?: string; action?: string }) {
   const { fail } = useApp();
   const [selected, setSelected] = useState<string | null>(null);
   const [path, setPath] = useState<any[]>([]);
@@ -22,7 +22,7 @@ export function FolderPicker({ open, onClose, onPick }: { open: boolean; onClose
   }, [open, selected, fail]);
 
   return (
-    <Dialog open={open} onClose={onClose} size="sm" title="이동할 폴더" footer={<><Button onClick={onClose}>취소</Button><Button variant="primary" onClick={() => onPick(selected)}>여기로 이동</Button></>}>
+    <Dialog open={open} onClose={onClose} size="sm" title={title} footer={<><Button onClick={onClose}>취소</Button><Button variant="primary" onClick={() => onPick(selected)}>{action}</Button></>}>
       <p className="mb-2 truncate text-xs text-muted">{path.length ? path.map((item) => item.name).join(" › ") : "내 드라이브"}</p>
       {selected && <button type="button" className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-[13px] hover:bg-hover" onClick={() => setSelected(path[path.length - 2]?.id ?? null)}><ArrowUp className="h-4 w-4" />상위 폴더</button>}
       {folders === null ? <RowsSkeleton rows={3} /> : folders.map((folder) => (

@@ -259,7 +259,7 @@ def link_file(activity_id: UUID, file_id: UUID, user_id: UUID = Depends(current_
             "values (%s,%s,%s) on conflict (activity_id,file_id) do nothing",
             (user_id, activity_id, file_id),
         )
-        conn.execute("update skive.drive_activities set updated_at=now() where id=%s", (activity_id,))
+        conn.execute("update skive.drive_activities set origin='user',updated_at=now() where id=%s", (activity_id,))
         return {"activity_id": activity_id, "file_id": file_id, "name": file["name"]}
 
 
@@ -282,7 +282,7 @@ def link_selected_files(activity_id: UUID, body: ActivityFileSelection,
             (user_id, activity_id, selected),
         ).fetchall()
         if added:
-            conn.execute("update skive.drive_activities set updated_at=now() where id=%s",
+            conn.execute("update skive.drive_activities set origin='user',updated_at=now() where id=%s",
                          (activity_id,))
         return {"activity_id": activity_id, "selected": len(selected), "added": len(added)}
 
@@ -297,7 +297,7 @@ def unlink_file(activity_id: UUID, file_id: UUID, user_id: UUID = Depends(curren
         ).fetchone()
         if row is None:
             raise HTTPException(404, "Linked file not found")
-        conn.execute("update skive.drive_activities set updated_at=now() where id=%s", (activity_id,))
+        conn.execute("update skive.drive_activities set origin='user',updated_at=now() where id=%s", (activity_id,))
         return {"activity_id": activity_id, "file_id": file_id}
 
 
@@ -325,7 +325,7 @@ def link_folder_files(activity_id: UUID, folder_id: UUID,
             (folder_id, user_id, user_id, user_id, activity_id, user_id),
         ).fetchall()
         if added:
-            conn.execute("update skive.drive_activities set updated_at=now() where id=%s", (activity_id,))
+            conn.execute("update skive.drive_activities set origin='user',updated_at=now() where id=%s", (activity_id,))
         return {"activity_id": activity_id, "folder_id": folder_id, "added": len(added)}
 
 

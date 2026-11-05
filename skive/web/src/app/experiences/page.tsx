@@ -135,6 +135,7 @@ export default function ExperiencesPage() {
         <Button id="experience-build" variant="primary" disabled={running} onClick={start}>{running ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}{items?.length ? "다시 분석" : "경험 찾기"}</Button>
       </PageHeader>
 
+      <p className="mb-3 text-xs text-muted">스카이브로 가져와 읽은 파일에서 찾습니다. 빠진 자료는 <Link prefetch={false} href="/profile" className="underline">프로필</Link>에서 구글 폴더를 더 가져오거나, 경험을 열어 폴더 연결을 눌러 주세요.</p>
       {running && (
         <Card className="mb-4">
           <p className="text-[13px] font-medium">{build.stage === "map" ? "경험으로 묶는 중" : "파일 카드 만드는 중"}</p>

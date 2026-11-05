@@ -16,6 +16,8 @@ DOCUMENT_EXT = {".pdf", ".docx", ".pptx", ".md", ".txt", ".rtf", ".hwp", ".hwpx"
 RESULT_EXT = {".xlsx", ".ipynb"}
 RESULT_NAME = re.compile(r"readme|report|summary|result|결과|보고|요약|발표|최종", re.IGNORECASE)
 NOISE_NAME = re.compile(r"^(package-lock\.json|yarn\.lock|poetry\.lock|uv\.lock|pnpm-lock\.yaml)$", re.IGNORECASE)
+NOISE_FOLDERS = {".git", ".svn", ".hg", "node_modules", "__pycache__", ".venv", "venv", ".ipynb_checkpoints",
+                 ".idea", ".vscode", ".pytest_cache", ".next"}
 DOCUMENT_PRIORITY_SQL = r"lower(f.name) ~ '\.(pdf|docx|pptx|md|txt|rtf|hwp|hwpx)$'"
 
 
@@ -26,6 +28,11 @@ def file_tier(name: str) -> int:
     if suffix in RESULT_EXT or RESULT_NAME.search(name):
         return RESULT
     return BULK
+
+
+def noise_folder(name: str) -> bool:
+    """Tool folders hold generated files by the thousand and nothing a person wrote."""
+    return name.lower() in NOISE_FOLDERS
 
 
 def worth_reading(name: str) -> bool:
