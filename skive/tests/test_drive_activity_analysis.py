@@ -115,3 +115,44 @@ def test_lines_are_not_cut_from_the_middle_of_a_long_file():
 
     propose(batch, "활동", model=SimpleNamespace(invoke=invoke))
     assert "line number 399 here" in seen["text"]
+
+
+def _batches_for(names):
+    from uuid import uuid4
+
+    from skive.drive_activity_analysis import source_batches
+
+    files = [{"id": uuid4(), "name": name, "version": 1, "analysis_status": "ready"} for name in names]
+    rows = [{"file_id": file["id"], "file_version": 1, "chunk_index": index, "location": f"L{index}",
+             "text": f"{file['name']} 구간 {index}"} for file in files for index in range(1, 4)]
+
+    class Connection:
+        def execute(self, _query, params):
+            wanted = set(params[1])  # The real query returns only the requested files.
+            found = [row for row in rows if row["file_id"] in wanted]
+            return type("Result", (), {"fetchall": lambda _: found})()
+
+    batches, _ = source_batches(Connection(), files, uuid4())
+    return [(ref["file"]["name"], ref["row"]["chunk_index"]) for refs, _, _ in batches for ref in refs.values()]
+
+
+def test_code_and_raw_data_stay_out_when_documents_exist():
+    seen = _batches_for(["보고서.pdf", "train.py", "batch_1.json", "raw.csv"])
+    assert {name for name, _ in seen} == {"보고서.pdf"}
+    assert len(seen) == 3
+
+
+def test_results_get_a_first_look_only():
+    seen = _batches_for(["보고서.pdf", "results_summary.csv"])
+    assert [index for name, index in seen if name == "results_summary.csv"] == [1]
+
+
+def test_code_is_sampled_when_a_project_has_no_documents():
+    seen = _batches_for(["train.py", "eval.py"])
+    assert {name for name, _ in seen} == {"train.py", "eval.py"}
+    assert {index for _, index in seen} == {1}
+
+
+def test_lock_files_are_never_read():
+    assert _batches_for(["package-lock.json"]) == []
+

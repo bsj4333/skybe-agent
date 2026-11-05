@@ -21,9 +21,11 @@ from skive.loaders import Chunk
 from skive.models import Evidence
 from skive.drive_read_card import _location
 from skive.drive_summary import rank_file
+from skive.drive_tiers import DOCUMENT, RESULT, file_tier, worth_reading
 
 MAX_BATCH_CHARS = 60_000  # About one comfortable model call.
-MAX_BATCHES = 60  # Runaway guard. Coverage is reported, never hidden.
+MAX_BATCHES = 20  # Token budget per activity. Coverage is reported, never hidden.
+MAX_FALLBACK_FILES = 10  # Code or data files sampled when an activity has no documents.
 MAX_REVIEW_FACTS = 40  # Everything is read; a person can only review so many.
 
 
@@ -66,10 +68,17 @@ def linked_files(conn, activity_id: UUID, user_id: UUID) -> list[dict]:
 
 
 def source_batches(conn, files: list[dict], user_id: UUID):
-    """Every extracted chunk of every readable file, reports first, split to fit one model call."""
-    ready = sorted((row for row in files if row["analysis_status"] == "ready"), key=rank_file)
-    if not ready:
+    """Documents are read to the end. Results get a first look, and code or raw data only
+    when the activity has nothing written. See `skive/drive_tiers.py`."""
+    readable = sorted((row for row in files if row["analysis_status"] == "ready"
+                       and worth_reading(row["name"])), key=rank_file)
+    if not readable:
         return [], 0
+    documents = [row for row in readable if file_tier(row["name"]) == DOCUMENT]
+    results = [row for row in readable if file_tier(row["name"]) == RESULT]
+    sampled = results if documents or results else readable[:MAX_FALLBACK_FILES]
+    ready = [*documents, *sampled]
+    first_chunk_only = {row["id"] for row in sampled}
     by_id = {row["id"]: row for row in ready}
     rows = conn.execute(
         "select c.file_id,c.file_version,c.chunk_index,c.location,c.text "
@@ -90,7 +99,8 @@ def source_batches(conn, files: list[dict], user_id: UUID):
 
     for file in ready:
         complete = True
-        for row in per_file.get(file["id"], []):
+        file_rows = per_file.get(file["id"], [])
+        for row in file_rows[:1] if file["id"] in first_chunk_only else file_rows:
             if size and size + len(row["text"]) > MAX_BATCH_CHARS:
                 flush()
             if len(batches) >= MAX_BATCHES:

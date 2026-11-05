@@ -22,6 +22,7 @@ from psycopg.rows import dict_row
 
 from skive.db import get_connection
 from skive.drive_db import service_connection
+from skive.drive_tiers import DOCUMENT_PRIORITY_SQL
 from skive.config import load_environment
 from skive.loaders import DRIVE_TEXT_EXT, load_drive_file
 from skive.drive_read_card import PARSER_VERSION, build_read_card
@@ -68,7 +69,8 @@ def claim_job(file_id=None):
             "from skive.drive_jobs j join skive.drive_files f on f.id=j.file_id "
             "where (j.status='queued' or (j.status='processing' and j.started_at < now()-interval '1 hour')) "
             "and f.upload_status='uploaded' and f.trashed_at is null "
-            + file_filter + "order by j.created_at for update of j skip locked limit 1",
+            + file_filter + f"order by ({DOCUMENT_PRIORITY_SQL}) desc,j.created_at "
+            "for update of j skip locked limit 1",
             (file_id,) if file_id is not None else (),
         ).fetchone()
         if job:
