@@ -113,7 +113,11 @@ export default function CareerPage() {
       await loadJobs();
       if (result.action === "ask") notice("AI가 확인 질문을 남겼습니다. 답변은 본인 진술로 저장됩니다.");
       if (result.action === "draft") notice("초안을 저장했습니다. 문장과 출처를 검토해 주세요.");
-    } catch (error) { fail(error); } finally { setBusy(false); }
+    } catch (error) {
+      fail(error);
+      // A long answer can finish on the server after the connection drops. Show whatever was saved.
+      await loadJob(jobId).catch(() => undefined);
+    } finally { setBusy(false); }
   };
 
   const toggleVersions = async () => {

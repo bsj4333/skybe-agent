@@ -358,7 +358,7 @@ def send_message(session_id: UUID, body: ChatMessage, user_id: UUID = Depends(cu
             "values (%s,%s,'user',%s)", (user_id, session_id, body.message),
         )
         citations = [*sources, *[{
-            "index": f"활동 {fact['index']}", "name": fact["file_name"],
+            "index": f"활동 사실 {fact['index']}", "name": fact["file_name"],
             "file_id": str(fact["file_id"]), "location": fact["location"],
             "chunk_index": fact["chunk_index"], "reviewed_fact_id": str(fact["id"]),
         } for fact in activity_facts]]

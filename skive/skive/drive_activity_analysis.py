@@ -27,6 +27,21 @@ MAX_BATCH_CHARS = 60_000  # About one comfortable model call.
 MAX_BATCHES = 20  # Token budget per activity. Coverage is reported, never hidden.
 MAX_FALLBACK_FILES = 10  # Code or data files sampled when an activity has no documents.
 MAX_REVIEW_FACTS = 40  # Everything is read; a person can only review so many.
+MIN_FACT_CHARS = 10  # Shorter lines without a measurement are slide or section titles.
+
+# List markers such as "(1)", "1." or "01" number a heading; they are not measurements.
+_ENUMERATION = re.compile(r"\(\s*\d{1,2}\s*\)|^\s*\d{1,2}\s*[.)]\s|^\s*0\d(?=\s|$)")
+_NUMBER = re.compile(r"\d+(?:[.,]\d+)*")
+
+
+def measurements(text: str) -> list[str]:
+    """Numbers that can be a result value, ignoring list and heading numbering."""
+    return _NUMBER.findall(_ENUMERATION.sub(" ", text))
+
+
+def is_reviewable(quote: str) -> bool:
+    """A fact must say something. Titles like '시장 규모 분석' or '인터뷰 세부결과(1)' do not."""
+    return bool(measurements(quote)) or len(re.sub(r"\s", "", quote)) >= MIN_FACT_CHARS
 
 
 class ProposedFact(BaseModel):
@@ -47,7 +62,10 @@ SYSTEM = """아래에는 파일 원문에서 그대로 가져온 줄마다 S번�
 종류는 context/goal/action/result/skill/lesson/other 중에서 고른다.
 주체가 명시되지 않으면 unclear, 팀 전체면 team, 프로젝트 전체면 project로 표시한다.
 파일 소유자가 본인 역할을 수행했다는 뜻은 아니다. 결과 수치의 단위와 조건은 원문 그대로 유지된다.
-S번호가 없는 내용은 반환하지 마라. 사용자가 확인하기 전에는 어떤 사실도 확정되지 않는다."""
+S번호가 없는 내용은 반환하지 마라. 사용자가 확인하기 전에는 어떤 사실도 확정되지 않는다.
+슬라이드 제목, 목차, 섹션 제목처럼 내용이 없는 줄은 고르지 않는다.
+외부 통계·시장 조사·인용 자료의 수치는 이 활동의 결과(result)가 아니라 배경(context)이다.
+인터뷰 응답자처럼 다른 사람의 진술은 이 활동의 결과가 아니다. 고른다면 context로 표시한다."""
 
 
 def source_signature(files: list[dict]) -> str:
@@ -149,10 +167,11 @@ def propose(batch, title: str, *, model=None) -> list[dict]:
             continue
         fallback = next((line_id for line_id, item in lines.items()
                          if refs[item["cid"]]["file"]["id"] == file_id and
+                         is_reviewable(item["quote"]) and
                          re.search(r"목표|결과|평가|개선|감소|증가|구현|개발|분석|설계|실험|성과|정확도", item["quote"])), None)
         if fallback:
             quote = lines[fallback]["quote"]
-            fallback_kind = ("result" if re.search(r"\d", quote) and
+            fallback_kind = ("result" if measurements(quote) and
                              re.search(r"결과|평가|정확도|감소|증가|달성", quote)
                              else "goal" if re.search(r"목표|목적", quote) else "other")
             chosen.append((fallback, fallback_kind, "unclear"))
@@ -165,8 +184,9 @@ def propose(batch, title: str, *, model=None) -> list[dict]:
                 continue
             matched = next((line_id for line_id, item in lines.items()
                             if refs[item["cid"]]["file"]["id"] == file_id and
+                            is_reviewable(item["quote"]) and
                             re.search(pattern, item["quote"]) and
-                            (wanted != "result" or re.search(r"\d", item["quote"]))), None)
+                            (wanted != "result" or measurements(item["quote"]))), None)
             if matched and matched not in {line_id for line_id, _, _ in chosen}:
                 chosen.append((matched, wanted, "unclear"))
     for line_id, kind, subject in chosen:
@@ -175,6 +195,8 @@ def propose(batch, title: str, *, model=None) -> list[dict]:
             continue
         ref = refs[item["cid"]]
         quote = item["quote"]
+        if not is_reviewable(quote):
+            continue
         check = _inspect(Evidence(chunk_id=item["cid"], quote=quote), chunks, quote)
         if not check["ok"]:
             continue
@@ -264,15 +286,15 @@ def conflict_questions(facts: list[dict]) -> list[str]:
     if facts and not any(f["review_state"] == "confirmed" and f["subject"] == "user"
                          and f["kind"] == "action" for f in facts):
         questions.append("이 활동에서 본인이 직접 맡아 수행한 일은 무엇인가요? 팀 전체의 작업과 구분해 주세요.")
-    numeric = [f for f in facts if f["kind"] == "result" and re.search(r"\d", f["content"])]
+    numeric = [f for f in facts if f["kind"] == "result" and measurements(f["content"])]
     if numeric:
         questions.append("결과 수치의 지표·단위·비교 기준·측정 시점과 본인 기여를 확인해 주세요.")
     by_pattern = {}
     for fact in numeric:
-        pattern = re.sub(r"\d+(?:[.,]\d+)*", "#", fact["content"].casefold())
+        pattern = _NUMBER.sub("#", _ENUMERATION.sub(" ", fact["content"]).casefold())
         by_pattern.setdefault(pattern, []).append(fact)
     for group in by_pattern.values():
-        values = {tuple(re.findall(r"\d+(?:[.,]\d+)*", fact["content"])) for fact in group}
+        values = {tuple(measurements(fact["content"])) for fact in group}
         if len(values) > 1:
             questions.append("같은 결과 항목에 서로 다른 수치가 있습니다. 버전과 측정 조건 중 어느 것이 맞나요? "
                              + " / ".join(fact["content"] for fact in group[:3]))

@@ -78,6 +78,29 @@ def test_goal_line_is_kept_when_model_only_selects_result():
     assert {item["kind"] for item in result} == {"goal", "result"}
 
 
+def test_slide_titles_are_not_review_candidates():
+    """2026-11-05 real-data run: titles became '결과' and '기타' facts."""
+    file = {"id": uuid4(), "name": "deck.pptx", "version": 1,
+            "analyzed_at": datetime.now(timezone.utc)}
+    row = {"chunk_index": 1, "location": "slide 3",
+           "text": "인터뷰 세부결과(1)\n시장 규모 분석\n인터뷰 결과 요약"}
+    batch = ({"C1": {"file": file, "row": row}},
+             {"C1": Chunk(source=file["name"], location=row["location"], text=row["text"])}, "")
+    result = propose(batch, "test", model=FakeModel([
+        ProposedFact(kind="other", line_id="S2", subject="unclear")]))
+    assert result == []
+
+
+def test_heading_numbers_are_not_conflicting_results():
+    facts = [{"kind": "result", "content": "인터뷰 세부결과(1)", "review_state": "candidate",
+              "subject": "unclear"},
+             {"kind": "result", "content": "인터뷰 세부결과(3)", "review_state": "candidate",
+              "subject": "unclear"}]
+    questions = conflict_questions(facts)
+    assert not any("서로 다른 수치" in question for question in questions)
+    assert not any("결과 수치" in question for question in questions)
+
+
 def test_every_chunk_of_every_ready_file_is_read():
     from uuid import uuid4
 

@@ -21,7 +21,10 @@ export default function LoginPage() {
     try {
       const supabase = await getSupabase();
       const credentials = { email: email.trim(), password };
-      const result = await (kind === "signin" ? supabase.auth.signInWithPassword(credentials) : supabase.auth.signUp(credentials));
+      // Without emailRedirectTo the confirmation link follows the project's Site URL, which was localhost.
+      const result = await (kind === "signin"
+        ? supabase.auth.signInWithPassword(credentials)
+        : supabase.auth.signUp({ ...credentials, options: { emailRedirectTo: `${window.location.origin}/login/` } }));
       if (result.error) throw result.error;
       if (!result.data.session) setMessage({ text: "이메일 확인 링크를 보냈습니다. 받은편지함과 스팸함을 확인한 뒤 로그인해 주세요." });
     } catch (error) {
