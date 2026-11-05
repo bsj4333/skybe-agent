@@ -214,7 +214,7 @@ export function GoogleImportProgress({ watch, activityId, onFinish }: { watch: n
       <div className="flex items-center gap-2 text-[13px]">
         {running && <Loader2 className="h-3.5 w-3.5 animate-spin text-accent" />}
         <span className="font-medium">{running ? `${name} 진행 중` : `${name} ${job.status === "failed" ? "실패" : "완료"}`}</span>
-        <span className="text-xs text-muted">{job.total ? `${finished}/${job.total}개` : "목록 확인 중"}</span>
+        <span className="text-xs text-muted">{job.total ? `${finished}/${job.total}개` : running ? "목록 확인 중" : ""}</span>
       </div>
       <p className="text-xs text-muted">{job.error || `${linking && !running ? `새로 연결 ${job.linked}개 · ` : ""}${job.failed ? `실패 ${job.failed}개 · ` : ""}${job.skipped ? `${linking ? "읽을 수 없거나 타인 자료로 보이는 항목" : "파일이 아닌 항목"} ${job.skipped}개 제외 · ` : ""}${running ? "서버에서 처리 중입니다. 서버가 잠들면 다음 접속 때 이어집니다." : "파일 읽기는 서버에서 이어집니다."}`}</p>
     </div>
