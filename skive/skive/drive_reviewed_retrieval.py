@@ -29,7 +29,8 @@ def reviewed_facts(conn, terms: list[str], folder_id: UUID | None = None, *, lim
         "join skive.drive_files f on f.id=af.source_file_id and f.user_id=af.user_id "
         "join skive.drive_activity_files link on link.activity_id=af.activity_id "
         "and link.file_id=f.id and link.user_id=af.user_id "
-        "where af.review_state='confirmed' and f.trashed_at is null "
+        "where af.review_state='confirmed' and f.trashed_at is null and a.status<>'excluded' "
+        "and not exists (select 1 from skive.drive_file_cards k where k.file_id=f.id and k.owner='other_person') "
         "and f.analysis_status='ready' and f.version=af.source_file_version "
         "and f.analyzed_at is not distinct from af.source_analyzed_at "
         + folder_filter + ("and (" + where + ") " if patterns else "") +

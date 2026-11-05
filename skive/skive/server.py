@@ -18,6 +18,7 @@ from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from starlette.datastructures import UploadFile as StarletteUploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from langchain_core.messages import AIMessage, HumanMessage
 from pydantic import BaseModel
 
@@ -26,6 +27,8 @@ from skive.drive_api import router as drive_router
 from skive.drive_activities import router as activity_router
 from skive.drive_workspace import router as workspace_router
 from skive.drive_career import router as career_router
+from skive.drive_experience import narrative_router, profile_router
+from skive.drive_experience import router as experience_router
 from skive.drive_google import router as google_router
 from skive.drive_project_summary import router as project_summary_router
 from skive.analyzer import analyze_folder
@@ -42,6 +45,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 OUTPUT_DIR = BASE_DIR / "data" / "outputs"
 UI_MOCKUP = BASE_DIR / "ui_mockup" / "skive_ui.html"
 DRIVE_UI = BASE_DIR / "ui_mockup" / "skive_drive.html"
+WEB_OUT = BASE_DIR / "web" / "out"
 TUS_BROWSER_JS = BASE_DIR / "ui_mockup" / "vendor" / "tus-4.3.1.min.js"
 
 app = FastAPI(title="SKIVE")
@@ -51,6 +55,9 @@ app.include_router(activity_router)
 app.include_router(workspace_router)
 app.include_router(project_summary_router)
 app.include_router(google_router)
+app.include_router(experience_router)
+app.include_router(profile_router)
+app.include_router(narrative_router)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -82,6 +89,8 @@ async def protect_legacy_api(request: Request, call_next):
 
 @app.get("/")
 def index():
+    if WEB_OUT.is_dir() and os.getenv("SKIVE_LEGACY_LOCAL_ONLY") != "1":
+        return FileResponse(WEB_OUT / "index.html", headers={"Cache-Control": "no-store"})
     if os.getenv("SKIVE_LEGACY_LOCAL_ONLY") != "1" and os.getenv("SUPABASE_URL") and (os.getenv("SUPABASE_PUBLISHABLE_KEY") or os.getenv("SUPABASE_ANON_KEY")):
         return FileResponse(DRIVE_UI, headers={"Cache-Control": "no-store"})
     if not UI_MOCKUP.is_file():
@@ -89,8 +98,15 @@ def index():
     return FileResponse(UI_MOCKUP)
 
 
+@app.get("/classic")
+def classic_drive():
+    return FileResponse(DRIVE_UI, headers={"Cache-Control": "no-store"})
+
+
 @app.get("/drive")
 def drive_index():
+    if WEB_OUT.is_dir():
+        return FileResponse(WEB_OUT / "drive" / "index.html", headers={"Cache-Control": "no-store"})
     if not DRIVE_UI.is_file():
         raise HTTPException(404, "Drive UI not found")
     return FileResponse(DRIVE_UI, headers={"Cache-Control": "no-store"})
@@ -910,3 +926,8 @@ def chat_end(req: ChatEndRequest):
 
     session_id = "study-" + datetime.now().strftime("%Y%m%d-%H%M%S")
     return summarize_session(transcript, session_id)
+
+
+# Must stay last: anything not matched above is the web app.
+if WEB_OUT.is_dir():
+    app.mount("/", StaticFiles(directory=WEB_OUT, html=True), name="web")

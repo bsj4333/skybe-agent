@@ -116,6 +116,7 @@ def run_career_orchestrator(conn, context: dict, job_id: UUID,
         "지금까지 확인한 내용만으로 답변을 제출해라. discuss/ask/draft 중 하나를 선택한다. "
         "원문이나 본인 진술이 부족하거나 서로 충돌하면 ask로 한 가지 구체적인 질문을 한다. "
         "초안에 파일 사실을 쓰면 [파일 N], 본인 진술을 쓰면 [본인 진술]을 표시한다. "
-        "검토된 활동 사실을 쓰면 [활동 사실 N]을 표시한다."
+        "검토된 활동 사실을 쓰면 [활동 사실 N]을 표시한다. "
+        "draft에는 제출할 본문만 쓴다. 안내, 주의, ※ 메모는 draft가 아니라 answer에 쓴다."
     ))
     return get_essay_llm().with_structured_output(reply_schema).invoke(messages)

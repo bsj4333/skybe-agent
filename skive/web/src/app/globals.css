@@ -1,0 +1,89 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --sidebar: #f7f7f5;
+  --hover: #f1f1ef;
+  --border: #e7e7e4;
+  --text: #2b2b29;
+  --muted: #73726e;
+  --accent: #1f7a6f;
+  --accent-soft: #e4f2ef;
+  --accent-text: #ffffff;
+  --danger: #c0392b;
+  --danger-soft: #fbeae8;
+  --warn: #9a6400;
+  --warn-soft: #fbf1dc;
+}
+
+.dark {
+  --bg: #191919;
+  --surface: #202020;
+  --sidebar: #1f1f1f;
+  --hover: #2c2c2c;
+  --border: #333331;
+  --text: #ececea;
+  --muted: #9b9a96;
+  --accent: #4bb5a6;
+  --accent-soft: #1e3431;
+  --accent-text: #0f1f1c;
+  --danger: #ef8579;
+  --danger-soft: #3a2320;
+  --warn: #e0b061;
+  --warn-soft: #362c1a;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-sidebar: var(--sidebar);
+  --color-hover: var(--hover);
+  --color-line: var(--border);
+  --color-ink: var(--text);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-text: var(--accent-text);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --font-sans: "Pretendard Variable", Pretendard, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.prose-md {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 13px;
+  line-height: 1.7;
+}

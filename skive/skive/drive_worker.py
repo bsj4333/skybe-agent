@@ -277,9 +277,11 @@ def main():
     secret_key = os.getenv("SUPABASE_SECRET_KEY", "") or os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
     if not base_url.startswith("https://") or not secret_key:
         raise SystemExit("Worker needs SUPABASE_URL and server-only SUPABASE_SECRET_KEY in .env")
+    from skive.drive_experience import experience_loop
     from skive.drive_google import google_import_loop
 
     threading.Thread(target=google_import_loop, daemon=True).start()
+    threading.Thread(target=experience_loop, daemon=True).start()
     from skive.drive_activity_analysis import run_activity_analysis_once
     from skive.drive_project_summary import run_project_summary_once
     from skive.drive_summary import run_summary_once

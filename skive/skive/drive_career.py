@@ -161,7 +161,7 @@ def get_job(job_id: UUID, user_id: UUID = Depends(current_user_id)):
     with user_connection(user_id) as conn:
         job = _job(conn, job_id)
         essays = conn.execute(
-            "select id,question,draft,citations,review_status,revision_count,updated_at "
+            "select id,question,draft,citations,sentence_checks,review_status,revision_count,updated_at "
             "from skive.drive_essays where job_workspace_id=%s order by created_at,id",
             (job_id,),
         ).fetchall()
@@ -247,6 +247,12 @@ def _career_response(context: dict, *, runtime=None) -> CareerReply:
     ])
 
 
+def _evidence_text(sources: list[dict], memories: list[dict], reviewed: list[dict]) -> str:
+    return "\n".join([*(source.get("excerpt", "") for source in sources),
+                      *(f"[본인 진술] {fact.get('content', '')}" for fact in memories),
+                      *(f"{fact.get('content', '')} {fact.get('review_note') or ''}" for fact in reviewed)])
+
+
 def _draft_gap(draft: str, sources: list[dict], memories: list[dict],
                reviewed: list[dict] | None = None) -> str:
     """Find obvious citation or numeric gaps before persisting a generated draft."""
@@ -306,6 +312,9 @@ def _repair_missing_attribution(draft: str, sources: list[dict], memories: list[
 @router.post("/jobs/{job_id}/messages")
 def send_job_message(job_id: UUID, body: JobTurn, user_id: UUID = Depends(current_user_id)):
     from skive.drive_reviewed_retrieval import reviewed_facts
+    from skive.drive_sentence_check import check_draft
+
+    sentence_checks: list[dict] = []
     with user_connection(user_id) as conn:
         job = _job(conn, job_id)
         essay = _essay(conn, job_id, body.essay_id)
@@ -358,6 +367,8 @@ def send_job_message(job_id: UUID, body: JobTurn, user_id: UUID = Depends(curren
             elif reply.action == "draft" and essay:
                 reply.draft = _repair_missing_attribution(reply.draft, sources, memories)
                 gap = _draft_gap(reply.draft, sources, memories, reviewed)
+                if not gap:
+                    sentence_checks = check_draft(reply.draft, _evidence_text(sources, memories, reviewed))
                 if gap:
                     reply = CareerReply(action="ask", answer="초안을 저장하기 전에 확인할 내용이 있어요.", question=gap)
         conn.execute(
@@ -371,16 +382,19 @@ def send_job_message(job_id: UUID, body: JobTurn, user_id: UUID = Depends(curren
         if reply.action == "draft" and reply.draft.strip() and essay:
             draft_citations = json.dumps({"files": sources, "activity_facts": reviewed},
                                          ensure_ascii=False, default=str)
+            checks_json = json.dumps(sentence_checks, ensure_ascii=False)
+            passed = bool(sentence_checks) and all(item["status"] != "unsupported" for item in sentence_checks)
             saved = conn.execute(
-                "update skive.drive_essays set draft=%s,citations=%s,review_status='needs_review',"
+                "update skive.drive_essays set draft=%s,citations=%s,sentence_checks=%s::jsonb,review_status=%s,"
                 "revision_count=revision_count+1,updated_at=now() where id=%s returning revision_count",
-                (reply.draft.strip(), draft_citations, essay["id"]),
+                (reply.draft.strip(), draft_citations, checks_json,
+                 "evidence_checked" if passed else "needs_review", essay["id"]),
             ).fetchone()
             conn.execute(
-                "insert into skive.drive_essay_versions(user_id,essay_id,revision_no,draft,citations) "
-                "values (%s,%s,%s,%s,%s)",
+                "insert into skive.drive_essay_versions(user_id,essay_id,revision_no,draft,citations,sentence_checks) "
+                "values (%s,%s,%s,%s,%s,%s::jsonb)",
                 (user_id, essay["id"], saved["revision_count"], reply.draft.strip(),
-                 draft_citations),
+                 draft_citations, checks_json),
             )
         references = {"files": sources, "user_statements": memories,
                       "activity_facts": reviewed, "past_essays": [dict(row) for row in past]}
@@ -393,4 +407,6 @@ def send_job_message(job_id: UUID, body: JobTurn, user_id: UUID = Depends(curren
         conn.execute("update skive.drive_job_workspaces set updated_at=now() where id=%s", (job_id,))
         return {"message": message, "action": reply.action, "pending_question": reply.question,
                 "draft": reply.draft if reply.action == "draft" else "", "essay_id": essay["id"] if essay else None,
+                "sentence_checks": sentence_checks,
+                "essay": {"id": essay["id"], "sentence_checks": sentence_checks} if essay else None,
                 "references": references}

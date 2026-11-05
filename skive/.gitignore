@@ -38,3 +38,10 @@ service_account*.json
 *.key
 env-*
 /구글 드라이브/
+
+# Web build output
+web/node_modules/
+web/.next/
+web/out/
+web/next-env.d.ts
+web/*.tsbuildinfo

@@ -200,6 +200,7 @@ def _sources(conn, question: str, folder_id: UUID | None, *, limit: int = 10,
         "select f.id as file_id,f.name,c.chunk_index,c.location,c.text "
         "from skive.drive_file_chunks c join skive.drive_files f on f.id=c.file_id "
         "where f.trashed_at is null and f.analysis_status='ready' "
+        "and not exists (select 1 from skive.drive_file_cards k where k.file_id=f.id and k.owner='other_person') "
         "and (f.folder_id is null or f.folder_id in (select id from visible)) "
         "and (%s::uuid is null or f.folder_id in (select id from scope)) and ("
         + " or ".join(conditions) + ") "
