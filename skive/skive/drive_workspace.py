@@ -108,13 +108,13 @@ def _keywords(question: str) -> list[str]:
     result = [word[:60] for word in manual if word not in stop]
     try:
         parsed = get_llm().with_structured_output(SearchKeywords).invoke([
-            SystemMessage("사용자 질문에서 자료 검색에 유용한 고유명사, 과목, 기술명, 약어, 숫자만 최대 6개 뽑아라. 질문에 없는 사실은 만들지 마라. 짧은 검색어로 반환한다."),
+            SystemMessage("사용자 질문에서 자료 검색에 유용한 고유명사, 과목, 기술명, 약어, 숫자를 최대 8개 뽑아라. 자료가 영어로 쓰인 경우가 많으므로 한국어 개념은 같은 뜻의 영어 용어도 함께 넣어라. 예: 성능 수치→F1, accuracy, precision, recall / 오탐→false alarm. 조사와 어미는 빼고 짧은 검색어로 반환한다. 질문에 없는 사실은 만들지 마라."),
             HumanMessage(question),
         ])
         result = parsed.terms + result
     except Exception:
         pass  # Keyword extraction failure must not turn a usable manual search into an error.
-    return list(dict.fromkeys(term.strip()[:60] for term in result if len(term.strip()) >= 2))[:8]
+    return list(dict.fromkeys(term.strip()[:60] for term in result if len(term.strip()) >= 2))[:10]
 
 
 def _project_summary_sources(conn, folder_id: UUID | None, terms: list[str], limit: int = 2):
@@ -157,6 +157,19 @@ def _project_summary_sources(conn, folder_id: UUID | None, terms: list[str], lim
         }))
     scored.sort(key=lambda pair: (-pair[0], pair[1]["name"]))
     return [item for _, item in scored[:limit]]
+
+
+def _latest_project_summary(conn):
+    row = conn.execute(
+        "select s.id,s.root_folder_id,f.name,s.markdown from skive.drive_project_summaries s "
+        "join skive.drive_folders f on f.id=s.root_folder_id where s.status='ready' "
+        "and s.markdown is not null order by s.updated_at desc limit 1").fetchone()
+    if not row:
+        return []
+    return [{"source_type": "project_summary", "file_id": str(row["id"]),
+             "project_folder_id": str(row["root_folder_id"]),
+             "name": f"{row['name']} — 프로젝트 통합 요약.md", "chunk_index": 1,
+             "location": "프로젝트 통합 요약", "excerpt": row["markdown"][:5000]}]
 
 
 def _sources(conn, question: str, folder_id: UUID | None, *, limit: int = 10,
@@ -217,6 +230,8 @@ def _sources(conn, question: str, folder_id: UUID | None, *, limit: int = 10,
         if len(selected) == limit:
             break
     summaries = _project_summary_sources(conn, folder_id, terms, limit=min(2, limit))
+    if not summaries and not selected and folder_id is None:
+        summaries = _latest_project_summary(conn)  # A vague question still has the overview.
     combined = [*summaries, *selected]
     return [dict(item, index=index) for index, item in enumerate(combined[:limit], 1)]
 

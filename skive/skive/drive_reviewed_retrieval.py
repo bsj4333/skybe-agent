@@ -3,7 +3,10 @@
 from uuid import UUID
 
 
-def reviewed_facts(conn, terms: list[str], folder_id: UUID | None = None, *, limit=10) -> list[dict]:
+def reviewed_facts(conn, terms: list[str], folder_id: UUID | None = None, *, limit=10,
+                   all_if_unmatched: bool = False) -> list[dict]:
+    """`all_if_unmatched` is for writing: facts the user confirmed must not vanish just because
+    the source was English and the search words were Korean."""
     patterns = [f"%{term.replace('%', '').replace('_', '')}%" for term in terms[:6]
                 if len(term.strip()) >= 2]
     where = " or ".join("(af.content ilike %s or a.title ilike %s or af.review_note ilike %s)"
@@ -34,6 +37,8 @@ def reviewed_facts(conn, terms: list[str], folder_id: UUID | None = None, *, lim
         (*( [folder_id] if folder_id is not None else []), *match_params, limit),
     ).fetchall()
     generic = {"강점", "경험", "성과", "소개", "활동", "프로젝트", "자소서"}
+    if not rows and patterns and all_if_unmatched:
+        return reviewed_facts(conn, [], folder_id, limit=limit)
     if not rows and patterns and all(term in generic for term in terms if term.strip()):
         return reviewed_facts(conn, [], folder_id, limit=min(limit, 4))
     return [dict(row, index=i) for i, row in enumerate(rows, 1)]

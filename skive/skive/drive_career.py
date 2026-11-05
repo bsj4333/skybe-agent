@@ -332,7 +332,7 @@ def send_job_message(job_id: UUID, body: JobTurn, user_id: UUID = Depends(curren
             sources = _sources(conn, target, None, limit=12, terms=terms)
             memories = _memory(conn, terms)
             past = _past_essays(conn, job_id, essay["question"] if essay else "", body.message)
-            reviewed = reviewed_facts(conn, terms, limit=12)
+            reviewed = reviewed_facts(conn, terms, limit=12, all_if_unmatched=True)
             context = {
                 "job": {"title": job["title"], "posting": job["job_text"], "url": job["job_url"], "values_url": job["values_url"]},
                 "selected_question": essay["question"] if essay else "선택 안 됨",
