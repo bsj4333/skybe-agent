@@ -76,3 +76,42 @@ def test_goal_line_is_kept_when_model_only_selects_result():
     result = propose(batch, "test", model=FakeModel([
         ProposedFact(kind="result", line_id="S2", subject="team")]))
     assert {item["kind"] for item in result} == {"goal", "result"}
+
+
+def test_every_chunk_of_every_ready_file_is_read():
+    from uuid import uuid4
+
+    from skive.drive_activity_analysis import source_batches
+
+    files = [{"id": uuid4(), "name": f"보고서{i}.md", "version": 1, "analysis_status": "ready"} for i in range(50)]
+    rows = [{"file_id": file["id"], "file_version": 1, "chunk_index": index, "location": f"L{index}",
+             "text": f"{file['name']} 구간 {index}"} for file in files for index in range(1, 7)]
+
+    class Connection:
+        def execute(self, *_):
+            return type("Result", (), {"fetchall": lambda _: rows})()
+
+    batches, covered = source_batches(Connection(), files, uuid4())
+    assert covered == 50
+    assert sum(len(refs) for refs, _, _ in batches) == 300
+
+
+def test_lines_are_not_cut_from_the_middle_of_a_long_file():
+    from types import SimpleNamespace
+    from uuid import uuid4
+
+    from skive.drive_activity_analysis import ProposedFacts, propose
+    from skive.loaders import Chunk
+
+    file = {"id": uuid4(), "name": "report.md"}
+    text = "\n".join(f"line number {index} here" for index in range(400))
+    batch = ({"C1": {"file": file, "row": {"location": "L1-400", "chunk_index": 1}}},
+             {"C1": Chunk("report.md", "L1-400", text)}, "")
+    seen = {}
+
+    def invoke(messages):
+        seen["text"] = messages[1].content
+        return ProposedFacts(facts=[])
+
+    propose(batch, "활동", model=SimpleNamespace(invoke=invoke))
+    assert "line number 399 here" in seen["text"]

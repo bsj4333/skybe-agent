@@ -20,8 +20,11 @@ from skive.llm import get_llm
 from skive.loaders import Chunk
 from skive.models import Evidence
 from skive.drive_read_card import _location
+from skive.drive_summary import rank_file
 
-MAX_FILES = 40
+MAX_BATCH_CHARS = 60_000  # About one comfortable model call.
+MAX_BATCHES = 60  # Runaway guard. Coverage is reported, never hidden.
+MAX_REVIEW_FACTS = 40  # Everything is read; a person can only review so many.
 
 
 class ProposedFact(BaseModel):
@@ -63,41 +66,45 @@ def linked_files(conn, activity_id: UUID, user_id: UUID) -> list[dict]:
 
 
 def source_batches(conn, files: list[dict], user_id: UUID):
-    ready = [row for row in files if row["analysis_status"] == "ready"][:MAX_FILES]
+    """Every extracted chunk of every readable file, reports first, split to fit one model call."""
+    ready = sorted((row for row in files if row["analysis_status"] == "ready"), key=rank_file)
     if not ready:
         return [], 0
     by_id = {row["id"]: row for row in ready}
     rows = conn.execute(
-        "with ranked as (select c.file_id,c.file_version,c.chunk_index,c.location,"
-        "left(c.text,2500) as text,"
-        "row_number() over (partition by c.file_id order by c.chunk_index) as first_rank,"
-        "row_number() over (partition by c.file_id order by c.chunk_index desc) as last_rank "
-        "from skive.drive_file_chunks c where c.user_id=%s "
-        "and c.file_id=any(%s::uuid[])) "
-        "select file_id,file_version,chunk_index,location,text from ranked "
-        "where first_rank=1 or last_rank=1 or location like '%% annotation %%' "
-        "or location like '%% speaker notes' or location like '%% cell note %%' "
-        "order by file_id,chunk_index", (user_id, [row["id"] for row in ready]),
+        "select c.file_id,c.file_version,c.chunk_index,c.location,c.text "
+        "from skive.drive_file_chunks c where c.user_id=%s and c.file_id=any(%s::uuid[]) "
+        "order by c.file_id,c.chunk_index", (user_id, [row["id"] for row in ready]),
     ).fetchall()
-    per_file = {}
+    per_file: dict = {}
     for row in rows:
-        if row["file_version"] != by_id[row["file_id"]]["version"]:
-            continue
-        selected = per_file.setdefault(row["file_id"], [])
-        if len(selected) < 3:
-            selected.append(row)
-    batches = []
-    for start in range(0, len(ready), 5):
-        refs, chunks, lines = {}, {}, []
-        for file in ready[start:start + 5]:
-            for row in per_file.get(file["id"], []):
-                cid = f"C{len(refs)+1}"
-                refs[cid] = {"file": file, "row": row}
-                chunks[cid] = Chunk(source=file["name"], location=row["location"], text=row["text"])
-                lines.append(f"[{cid}] {file['name']} @ {row['location']}\n{row['text']}")
-        if lines:
-            batches.append((refs, chunks, "\n\n".join(lines)))
-    return batches, len(ready)
+        if row["file_version"] == by_id[row["file_id"]]["version"]:
+            per_file.setdefault(row["file_id"], []).append(row)
+    batches, refs, chunks, size, covered = [], {}, {}, 0, 0
+
+    def flush():
+        nonlocal refs, chunks, size
+        if refs:
+            batches.append((refs, chunks, ""))
+        refs, chunks, size = {}, {}, 0
+
+    for file in ready:
+        complete = True
+        for row in per_file.get(file["id"], []):
+            if size and size + len(row["text"]) > MAX_BATCH_CHARS:
+                flush()
+            if len(batches) >= MAX_BATCHES:
+                complete = False
+                break
+            cid = f"C{len(refs)+1}"
+            refs[cid] = {"file": file, "row": row}
+            chunks[cid] = Chunk(source=file["name"], location=row["location"], text=row["text"])
+            size += len(row["text"])
+        if not complete:
+            break
+        covered += 1
+    flush()
+    return batches, covered
 
 
 def propose(batch, title: str, *, model=None) -> list[dict]:
@@ -110,17 +117,11 @@ def propose(batch, title: str, *, model=None) -> list[dict]:
             quote = raw.strip()[:450]
             if len(quote) < 4:
                 continue
-            if per_file_count.get(file_id, 0) >= 24:
-                break
             line_id = f"S{len(lines)+1}"
             source = refs[cid]
             lines[line_id] = {"cid": cid, "quote": quote,
                               "location": _location(source["row"]["location"], raw, offset)}
             per_file_count[file_id] = per_file_count.get(file_id, 0) + 1
-            if len(lines) >= 160:
-                break
-        if len(lines) >= 160:
-            break
     if not lines:
         return []
     numbered = "\n".join(f"[{line_id}] ({refs[item['cid']]['file']['name']} @ {item['location']}) "
@@ -130,6 +131,7 @@ def propose(batch, title: str, *, model=None) -> list[dict]:
     ])
     proposals = []
     chosen = [(item.line_id, item.kind, item.subject) for item in result.facts]
+    model_chosen = {line_id for line_id, _, _ in chosen}
     selected_files = {refs[lines[line_id]["cid"]]["file"]["id"] for line_id, _, _ in chosen
                       if line_id in lines}
     for file_id in per_file_count:
@@ -169,7 +171,7 @@ def propose(batch, title: str, *, model=None) -> list[dict]:
         proposals.append({"kind": kind, "content": quote,
                           "subject": "unclear" if subject == "user" else subject,
                           "file": ref["file"], "row": {**ref["row"], "location": item["location"]},
-                          "quote": quote, "check": check})
+                          "quote": quote, "check": check, "model_chosen": line_id in model_chosen})
     return proposals
 
 
@@ -199,6 +201,8 @@ def run_activity_analysis_once() -> bool:
         candidates = []
         for batch in batches:
             candidates.extend(propose(batch, job["title"]))
+        candidates.sort(key=lambda item: not item.get("model_chosen"))  # Stable: reports stay first.
+        candidates = candidates[:MAX_REVIEW_FACTS]
         with get_connection() as conn:
             conn.row_factory = dict_row
             if source_signature(linked_files(conn, job["activity_id"], job["user_id"])) != signature:
